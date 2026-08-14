@@ -15,6 +15,8 @@ Layer 2 forwarding refers to the process switches used to forward frames within 
 ## 3. 예시 및 구성도
 
 내용 작성\
+![](images/git_example.png)\
+
 
 ---
 
