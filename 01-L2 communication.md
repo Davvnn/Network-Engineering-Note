@@ -2,7 +2,7 @@
 
 ## 개념
 
-Layer 2 통신은 같은 네트워크(LAN) 안에 있는 장비들이 MAC Address를 기반으로 통신하는 방식이다. Layer 2에서는 데이터를 Frame 단위로 전달한다. 스위치는 전달받은 Frame의 Ethernet Header에서 Source MAC Address를 확인하고, 해당 Frame이 들어온 인터페이스에 Source MAC Address을 매핑한다. 이후 Destination MAC Address를 확인하고, 자신의 MAC Address Table에 해당 맥주소가 있으면 매핑된 인터페이스로 Frame을 Forwarding한다.
+Layer 2 통신은 같은 네트워크(LAN) 안에 있는 장비들이 MAC Address를 기반으로 통신하는 방식이다. Layer 2에서는 데이터를 Frame 단위로 전달한다. 스위치는 전달받은 Frame의 Ethernet Header에서 Source MAC Address를 확인하고, 해당 MAC Address와 Frame이 들어온 인터페이스를 MAC Address Table에 매핑한다. 이후 Destination MAC Address를 확인하고, MAC Address Table에 해당 주소가 있으면 매핑된 인터페이스로 Frame을 Forwarding한다.
 
 ---
 
