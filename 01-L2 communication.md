@@ -23,6 +23,13 @@ Layer 2 통신은 같은 네트워크(LAN) 안에 있는 장비들이 MAC Addres
 ---
 
 ## 예시 및 구성도
+PC1
+- IP Address: 192.168.1.10
+- MAC Address: AAAA.AAAA.AAAA
+
+PC2
+- IP Address: 192.168.1.20
+- MAC Address: BBBB.BBBB.BBBB
 
 ![](images/git_example.png)
 
