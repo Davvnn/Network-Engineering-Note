@@ -28,7 +28,7 @@ Gratuitous ARP는 단말이 ARP Request를 받지 않은 상태에서 자신의 
 
 6\. 요청한 단말은 전달받은 IP Address와 MAC Address 정보를 ARP Table에 매핑한다.
 
-7\. 이후 단말은 응받은 MAC Address를 Destination MAC Address로 지정하여 Ethernet Frame을 생성하고 전송한다.
+7\. 이후 단말은 응답받은 MAC Address를 Destination MAC Address로 지정하여 Ethernet Frame을 생성하고 전송한다.
 
 ### Gratuitous ARP
 
