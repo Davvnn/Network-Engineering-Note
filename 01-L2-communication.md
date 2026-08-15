@@ -68,11 +68,26 @@ SW1# show interfaces status
 
 ## Troubleshooting
 
-내용 작성
+1\. L2 통신이 되지 않으면 먼저 인터페이스 상태를 확인한다.
+
+2\. 인터페이스가 `connected` 상태인데도 통신되지 않는다면 양쪽 인터페이스의 Access VLAN이 서로 다르게 설정되어 있을 가능성이 높다.
+
+3\. 케이블이 정상적으로 연결되어 있는데 인터페이스가 Down 상태라면 해당 인터페이스에 `shutdown`이 설정되어 있는지 확인한다.
 
 ---
 
 ## 실무 질문
 
-Q1. 스위치는 목적지 MAC Address를 모르면 어떻게 동작하는가?
-- L2 Header에서 Destination MAC을 확인한다.
+스위치는 Destination MAC Address를 모르면 어떻게 동작하는가?
+- Frame이 들어온 인터페이스를 제외하고, 같은 VLAN에 속한 모든 인터페이스로 Frame을 Flooding한다.
+
+스위치는 MAC Address를 어떻게 학습하는가?
+- 수신한 Frame의 Source MAC Address와 Frame이 들어온 인터페이스를 MAC Address Table에 매핑하여 학습한다.
+
+인터페이스가 Up 상태인데도 L2 통신이 되지 않으면 무엇을 확인해야 하는가?
+- 양쪽 인터페이스의 Access VLAN이 같은지 확인하고, MAC Address Table에 단말의 MAC Address가 올바르게 학습되어 있는지 확인한다.
+
+
+
+
+
