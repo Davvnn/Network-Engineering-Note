@@ -20,7 +20,7 @@ Gratuitous ARP는 단말이 ARP Request를 받지 않은 상태에서 자신의 
 
 2\. 같은 네트워크에 있다면 목적지 IP Address에 매핑된 MAC Address를 ARP Table에서 확인한다. 다른 네트워크에 있다면 Default Gateway의 IP Address에 매핑된 MAC Address를 확인한다.
 
-3\. ARP Table에 필요 MAC Address 정보가 없으면 해당 IP Address를 Target IP Address로 지정한 ARP Request를 Broadcast로 전송한다.
+3\. ARP Table에 필요한 MAC Address 정보가 없으면 해당 IP Address를 Target IP Address로 지정한 ARP Request를 Broadcast로 전송한다.
 
 4\. 스위치는 ARP Request를 수신한 인터페이스를 제외하고, 같은 VLAN에 속한 모든 인터페이스로 Flooding한다.
 
