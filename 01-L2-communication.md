@@ -38,12 +38,12 @@ PC2
 - Frame 안에는 PC1의 Source MAC Address와 PC2의 Destination MAC Address 정보가 들어 있다.
 
 2\. SW1은 해당 Frame을 받고 Ethernet Header의 Destination MAC Address를 확인한다.
-- Destination MAC Address인 BBBB.BBBB.BBBB가 자신의 Gi0/24에 매핑되어 있는 것을 확인한다.
+- Destination MAC Address인 `BBBB.BBBB.BBBB`가 자신의 Gi0/24에 매핑되어 있는 것을 확인한다.
 
 3\. SW1은 Gi0/24를 통해 SW2로 해당 Frame을 Forwarding한다.
 
 4\. SW2는 Frame을 받고 Destination MAC Address를 확인한다.
-- BBBB.BBBB.BBBB가 PC2가 연결된 Gi0/1에 매핑되어 있는 것을 확인한다.
+- `BBBB.BBBB.BBBB`가 PC2가 연결된 Gi0/1에 매핑되어 있는 것을 확인한다.
 
 5\. SW2는 Gi0/1을 통해 PC2로 Frame을 Forwarding한다.
 
