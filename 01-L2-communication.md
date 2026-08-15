@@ -54,13 +54,11 @@ PC2
 
 ## 명령어
 
-### MAC Address Table 확인
 ```
 SW1# show mac address-table
 ```
 스위치가 학습한 MAC Address와 해당 MAC Address가 매핑된 인터페이스를 확인한다.
 
-### 인터페이스 상태 확인
 ```
 SW1# show interfaces status
 ```
