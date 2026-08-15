@@ -54,7 +54,17 @@ PC2
 
 ## 명령어
 
-내용 작성
+### MAC Address Table 확인
+```
+SW1# show mac address-table
+```
+스위치가 학습한 MAC Address와 해당 MAC Address가 매핑된 인터페이스를 확인한다.
+
+### 인터페이스 상태 확인
+```
+SW1# show interfaces status
+```
+인터페이스의 연결 상태, VLAN 등의 상태를 확인할 수 있다.
 
 ---
 
