@@ -31,6 +31,7 @@ PC2
 - IP Address: 192.168.1.20
 - MAC Address: BBBB.BBBB.BBBB
 
+### PC1 ↔ PC2 통신
 ![](images/01-L2-com.png)
 
 
