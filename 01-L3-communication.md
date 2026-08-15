@@ -51,7 +51,6 @@ PC2
 - Default Gateway: 192.168.2.1
 
 ### PC1 ↔ PC2 통신
-
 ![](images/02-L3-com.png)
 
 1\. PC1은 PC2의 IP Address가 자신의 네트워크가 아닌걸 확인한다.
