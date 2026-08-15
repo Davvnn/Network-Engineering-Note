@@ -112,6 +112,11 @@ R1# show ip route
 
 ## 실무 질문
 
-Q1. 스위치는 목적지 MAC Address를 모르면 어떻게 동작하는가?
-- L2 Header에서 Destination MAC을 확인한다.
+라우터의 Routing Table에 Destination IP Address와 일치하는 경로가 없으면 어떻게 동작하는가?
+- 일치하는 경로가 없으면 Default Route인 `0.0.0.0/0`에 설정된 Next-Hop과 Exit Interface로 내보낸다. 만약 Default Route도 없으면 Packet을 폐기한다.
 
+라우터를 통과할 때 IP Address와 MAC Address는 어떻게 변경되는가?
+- Source와 Destination IP Address는 유지되지만, Source와 Destination MAC Address는 각 구간마다 변경된다. 또한 TTL은 라우터를 통과할 때마다 1씩 감소한다.
+
+목적지까지 가는 경로는 있지만 Return Route가 없으면 어떻게 되는가?
+- Packet은 목적지에 도착할 수 있지만 응답 Packet이 출발지로 돌아오지 못하기 때문에 통신이 정상적으로 이루어지지 않는다.
