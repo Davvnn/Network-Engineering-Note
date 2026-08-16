@@ -185,23 +185,64 @@ HSRP
 
 12\. 새로운 Active 장비인 DSW2는 PC1의 트래픽을 수신하고, Routing Table을 확인하여 목적지 네트워크로 전달한다.
 
-
 ---
 
 ## 명령어
 
-내용 작성
+```
+DSW1# show ip arp
+```
+
+L3 장비가 학습한 IP Address와 MAC Address의 매핑 정보를 확인한다.
+
+```
+DSW1# show ip arp | include 192.168.1.20
+```
+
+특정 IP Address가 포함된 ARP 정보를 확인한다.
+
+```
+PC1> arp -a
+```
+
+Windows PC의 ARP Table을 확인한다.
 
 ---
 
 ## Troubleshooting
 
-내용 작성
+1\. ARP Table에 MAC Address가 표시되지 않거나 `Incomplete` 상태라면 상대 장비에서 ARP Reply를 받지 못한 것이다.
+
+2\. 인터페이스 상태와 Access VLAN을 확인하고, 단말의 IP Address, Subnet Mask, Default Gateway 설정이 올바른지 확인한다.
+
+3\. 장비의 MAC Address가 변경되었지만 이전 ARP 정보가 남아 있다면 기존 ARP 정보를 삭제한 후 통신을 다시 시도하여 새로운 ARP 정보를 학습하는지 확인한다.
+
+Cisco 장비에서 특정 ARP 정보를 삭제한다.
+- 삭제 후 통신을 다시 시도하여 새로운 ARP 정보를 학습하는지 확인한다.
+
+```
+DSW1# clear ip arp 192.168.1.20
+DSW1# ping 192.168.1.20
+```
+
+Windows 단말에서 특정 ARP 정보를 삭제한다.
+- 삭제 후 통신을 다시 시도한다.
+
+```
+PC1> arp -d 192.168.1.20
+PC1> ping 192.168.1.20
+```
 
 ---
 
 ## 실무 질문
 
-Q1. 스위치는 목적지 MAC Address를 모르면 어떻게 동작하는가?
-- L2 Header에서 Destination MAC을 확인한다.
+ARP Request와 ARP Reply는 어떻게 전송되는가?
+- ARP Request는 목적지 IP Address는 알지만 MAC Address를 모를 때 같은 네트워크에 “192.168.1.20을 사용하는 장비야, 너의 MAC Address는 뭐야?”라고 Broadcast로 전송한다. 해당 IP Address를 사용하는 장비는 “나의 MAC Address는 BBBB.BBBB.BBBB야.”라는 ARP Reply를 요청한 장비에게 Unicast로 전송한다.
+
+다른 네트워크에 있는 장비와 통신할 때 어떤 MAC Address를 ARP로 확인하는가?
+- 원격 목적지 단말의 MAC Address가 아니라 같은 네트워크에 있는 Default Gateway의 MAC Address를 확인한다.
+
+Gratuitous ARP는 언제 사용하는가?
+- IP Address와 MAC Address 정보를 갱신하거나 이중화 장비가 전환된 사실을 같은 네트워크에 알릴 때 사용한다.
 
