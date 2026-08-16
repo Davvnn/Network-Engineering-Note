@@ -42,7 +42,7 @@ Gratuitous ARP는 단말이 ARP Request를 받지 않은 상태에서 자신의 
 
 ## 예시 및 구성도
 
-### 목적기가 같은 네트워크인 경우 
+### 목적지가 같은 네트워크인 경우 
 
 PC1
 - IP Address: 192.168.1.10/24
@@ -74,7 +74,7 @@ PC2
 
 8\. PC1은 PC2의 MAC Address를 Destination MAC Address로 지정하여 Ethernet Frame을 생성하고 전송한다.
 
-### PC1과 PC2가 다른 네트워크인 경우
+### 목적지가 다른 네트워크인 경우
 
 PC1
 - IP Address: 192.168.1.10/24
