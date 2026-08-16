@@ -237,8 +237,9 @@ PC1> ping 192.168.1.20
 
 ## 실무 질문
 
-ARP Request와 ARP Reply는 어떻게 전송되는가?
-- ARP Request는 목적지 IP Address는 알지만 MAC Address를 모를 때 같은 네트워크에 “192.168.1.20을 사용하는 장비야, 너의 MAC Address는 뭐야?”라고 Broadcast로 전송한다. 해당 IP Address를 사용하는 장비는 “나의 MAC Address는 BBBB.BBBB.BBBB야.”라는 ARP Reply를 요청한 장비에게 Unicast로 전송한다.
+ARP Request와 ARP Reply는 어떤 방식으로 전송되는가?
+- ARP Request는 상대방의 IP Address는 알지만 MAC Address를 모를 때, 해당 MAC Address를 확인하기 위해 자신이 속한 네트워크에 Broadcast를 전송한다.
+- ARP Reply는 자신의 MAC Address를 ARP Request를 보낸 장비에게 Unicast로 전송한다.
 
 다른 네트워크에 있는 장비와 통신할 때 어떤 MAC Address를 ARP로 확인하는가?
 - 원격 목적지 단말의 MAC Address가 아니라 같은 네트워크에 있는 Default Gateway의 MAC Address를 확인한다.
