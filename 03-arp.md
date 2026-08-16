@@ -136,6 +136,55 @@ PC2
 
 18\. PC2는 R1이 전달한 Ethernet Frame을 수신하고 Decapsulation하여 PC1이 전송한 Packet의 Data를 확인한다.
 
+### 이중화 환경에서 Active 장비가 변경된 경우
+
+PC1
+- IP Address: 192.168.1.10/24
+- Default Gateway: 192.168.1.1
+
+DSW1
+- Vlan1 IP Address: 192.168.1.2/24
+- HSRP 상태: Active → 장애 발생
+
+DSW2
+- Vlan1 IP Address: 192.168.1.3/24
+- HSRP 상태: Standby → Active
+
+HSRP
+- Virtual IP Address: 192.168.1.1
+- Virtual MAC Address: 0000.000A.0001
+- Group Number: 1
+
+![](images/03-arp-active.png)
+
+1\. PC1은 HSRP Virtual IP Address인 `192.168.1.1`을 Default Gateway로 사용한다.
+
+2\. 기존 Active 장비인 DSW1은 Virtual IP Address `192.168.1.1`과 Virtual MAC Address `0000.000A.0001`을 사용하여 PC1의 트래픽을 처리한다.
+
+3\. DSW1에 장애가 발생하여 SW1의 Gi0/23이 Down이 된다. 
+
+4\. STP는 Topology 변경을 감지하고 경로를 다시 계산한다. 기존에 Blocking 상태였던 SW1의 `Gi0/24`는 Forwarding 상태로 전환된다.
+
+5\. DSW2는 DSW1으로부터 HSRP Hello 메시지를 받지 못하여 기존 Standby 상태에서 Active 상태로 전환된다.
+
+6\. DSW2는 HSRP Virtual IP Address `192.168.1.1`과 Virtual MAC Address `0000.000A.0001`이 포함된 Gratuitous ARP를 VLAN 1에 Broadcast로 전송한다.
+- DSW2가 여러 SVI에서 HSRP Active로 전환된다면 각 SVI가 속한 VLAN마다 해당 Virtual IP Address와 Virtual MAC Address가 포함된 Gratuitous ARP를 각각 전송한다.
+
+7\. SW1은 Gratuitous ARP를 수신한 인터페이스를 제외하고, VLAN 1에 속한 모든 인터페이스로 Flooding한다.
+
+8\. SW1은 Gratuitous ARP가 DSW2와 연결된 `Gi0/24`로 들어온 것을 확인하고, Virtual MAC Address의 위치를 DSW2 방향으로 갱신한다.
+- 변경 전: `0000.000A.0001` → DSW1 `Gi0/23`
+- 변경 후: `0000.000A.0001` → DSW2 `Gi0/24`
+
+9\. PC1의 ARP Table에는 기존과 동일한 HSRP 정보가 유지된다.
+- `192.168.1.1` → `0000.000A.0001`
+
+10\. 이후 PC1은 Virtual MAC Address `0000.000A.0001`을 Destination MAC Address로 지정하여 Ethernet Frame을 전송한다.
+
+11\. SW1은 MAC Address Table을 확인하고 Ethernet Frame을 DSW2와 연결된 `Gi0/24`로 전달한다.
+
+12\. 새로운 Active 장비인 DSW2는 PC1의 트래픽을 수신하고, Routing Table을 확인하여 목적지 네트워크로 전달한다.
+
 
 ---
 
