@@ -14,17 +14,17 @@
 
 ### Ping 동작 과정
 
-내용 작성
+1\. 내용 작성
 
 ### Traceroute 동작 과정
 
-내용 작성
+1\. 내용 작성
 
 ---
 
 ## 예시 및 구성도
 
-![](images/04-icmp-ping-traceroute.png)
+![](images/)
 
 ### Ping 예시
 
