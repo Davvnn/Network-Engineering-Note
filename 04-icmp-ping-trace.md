@@ -91,19 +91,86 @@ Windows의 `tracert`는 일반적으로 ICMP Echo Request를 사용한다. Cisco
 
 ## 예시 및 구성도
 
-### Ping 예시
+PC1
+- IP Address: 192.168.1.10/24
+- Default Gateway: 192.168.1.1
 
-내용 작성
+R1
+- Gi0/1 IP Address: 192.168.1.1/24
+- Gi0/2 IP Address: 10.0.12.1/30
 
-### Traceroute 예시
+R2
+- Gi0/1 IP Address: 10.0.12.2/30
+- Gi0/2 IP Address: 192.168.2.1/24
 
-내용 작성
+PC2
+- IP Address: 192.168.2.10/24
+- Default Gateway: 192.168.2.1
+
+### Ping
+
+
+
+
+
+
+
+### Traceroute
+
+
+
+
 
 ---
 
 ## 명령어
 
-내용 작성
+```
+R1# ping 192.168.2.10
+```
+목적지 장비와 IP 통신이 가능한지 확인한다.
+
+```
+R1# traceroute 192.168.2.10
+```
+목적지까지 Packet이 통과하는 Layer 3 경로를 확인한다.
+
+```
+R1# show ip interface brief
+```
+인터페이스의 IP Address와 동작 상태를 확인한다.
+
+```
+R1# show ip route 192.168.2.10
+```
+목적지 IP Address와 일치하는 경로가 Routing Table에 있는지 확인한다.
+
+```
+R1# show access-lists
+```
+ACL에서 ICMP 또는 목적지 트래픽을 차단하고 있는지 확인한다.
+
+### Windows
+
+```
+PC1> ping 192.168.2.10
+```
+목적지 장비와 IP 통신이 가능한지 확인한다.
+
+```
+PC1> ping -t 192.168.2.10
+```
+사용자가 중지할 때까지 Ping을 계속 전송한다.
+
+```
+PC1> tracert 192.168.2.10
+```
+목적지까지 통과하는 Layer 3 경로를 확인한다.
+
+```
+PC1> ipconfig
+```
+단말의 IP Address, Subnet Mask, Default Gateway 설정을 확인한다.
 
 ---
 
