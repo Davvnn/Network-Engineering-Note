@@ -141,6 +141,70 @@ UDP Header 구성 요소
 
 ---
 
+## 명령어
+
+```
+R1# show tcp brief all
+```
+Cisco 장비 자체에 생성된 TCP Connection의 Local Address, Foreign Address, Port Number 및 Connection State를 확인한다.
+
+```
+R1# show tcp
+```
+TCP Connection의 Sequence Number, Acknowledgment Number, Window Size 및 재전송 정보를 상세하게 확인한다.
+
+```
+R1# show udp
+```
+Cisco 장비에서 사용 중인 UDP Socket과 Port 정보를 확인한다.
+
+---
+
+## Troubleshooting
+
+### TCP
+
+1\. TCP 통신이 실패하면 단말의 Source IP Address, Destination IP Address, Source Port 및 Destination Port가 올바른지 확인한다.
+
+2\. Wireshark를 실행한 후 목적지 웹사이트에 접속하여 해당 TCP 통신의 Packet을 Capture한다.
+
+3\. Wireshark에서 TCP Flag를 확인하여 3-Way Handshake가 정상적으로 진행되는지 확인한다.
+- 출발지 → 목적지: SYN
+- 목적지 → 출발지: SYN-ACK
+- 출발지 → 목적지: ACK
+
+4\. 출발지에서 SYN이 전송되었지만 목적지에서 확인되지 않으면 중간 네트워크 구간과 방화벽을 확인한다.
+- 방화벽 Log에서 해당 TCP 통신이 차단되었는지 확인한다.
+
+5\. 목적지에서 SYN을 수신했지만 SYN-ACK를 전송하지 않으면 목적지 Application의 상태를 확인한다.
+
+6\. 목적지에서 SYN-ACK를 전송했지만 출발지에서 수신하지 못하면 Return Path와 방화벽을 확인한다.
+
+7\. 3-Way Handshake가 정상적으로 완료되면 TCP Connection State가 `ESTABLISHED`인지 확인한다.
+```
+R1# show tcp brief all
+
+TCB       Local Address          Foreign Address        (state)
+6523A4FC  192.168.1.1.22         192.168.1.10.50000     ESTAB
+```
+- `ESTAB`: TCP Connection이 정상적으로 설정된 상태
+
+### UDP
+
+1\. UDP 통신이 실패하면 단말의 Source IP Address, Destination IP Address, Source Port 및 Destination Port가 올바른지 확인한다.
+
+2\. Wireshark에서 목적지 IP Address와 UDP Port를 기준으로 UDP Datagram을 확인한다.
+
+3\. 출발지에서 UDP Datagram이 전송되었지만 목적지에서 확인되지 않으면 중간 네트워크 구간과 방화벽을 확인한다.
+- 방화벽 Log에서 해당 UDP 통신이 차단되었는지 확인한다.
+
+4\. 목적지에서 UDP Datagram을 수신했지만 응답하지 않으면 목적지 Application의 상태를 확인한다.
+
+5\. 목적지에서 UDP 응답을 전송했지만 출발지에서 수신하지 못하면 Return Path와 방화벽을 확인한다.
+
+
+---
+
 ## 실무 질문
 
 TCP와 UDP는 어떤 역할을 하는가?
@@ -175,6 +239,3 @@ UDP Datagram이 손실되면 어떻게 되는가?
 
 TCP Connection이 `ESTABLISHED` 상태라는 것은 무엇을 의미하는가?
 - TCP 3-Way Handshake가 완료되어 두 장비가 TCP Data를 주고받을 수 있는 상태라는 의미이다.
-
-
-
