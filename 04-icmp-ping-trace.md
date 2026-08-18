@@ -13,7 +13,6 @@ ICMP Data에 ICMP Header가 추가되어 ICMP 메시지가 되고, 이후 IP Hea
 ![](images/04-icmp-header.png)
 ![](images/04-icmp-header-encap.png)
 
-
 ### Ping
 
 Ping은 ICMP Echo Request와 Echo Reply를 사용하여 목적지 장비와 IP 통신이 가능한지 확인하는 도구이다.
@@ -29,6 +28,7 @@ Traceroute는 IP Header의 TTL 값을 `1`부터 순차적으로 증가시켜 Pac
 
 Windows의 `tracert`는 일반적으로 ICMP Echo Request를 사용한다. Cisco와 Linux의 `traceroute`는 일반적으로 UDP를 사용한다.
 
+![](images/04-icmp-trace.png)
 
 ---
 
@@ -64,8 +64,6 @@ Windows의 `tracert`는 일반적으로 ICMP Echo Request를 사용한다. Cisco
 10\. 출발지 장비는 Echo Reply를 수신하고 응답 시간과 Packet Loss를 확인한다.
 
 ### Traceroute
-
-![](images/04-icmp-traceroute.png)
 
 1\. 출발지 장비는 TTL 값을 `1`로 지정한 첫 번째 Probe Packet을 전송한다.
 
