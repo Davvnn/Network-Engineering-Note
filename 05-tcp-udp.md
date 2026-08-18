@@ -38,6 +38,8 @@ TCP(Transmission Control Protocol)는 Data를 전송하기 전에 3-Way Handshak
 
 TCP는 Sequence Number와 Acknowledgment Number를 사용하여 Data의 순서와 수신 여부를 확인한다. TCP Segment가 손실되면 재전송하고, 순서가 바뀌어 도착하면 올바른 순서로 재조립하며, 중복된 Segment는 제거한다. 또한 Flow Control과 Congestion Control을 통해 전송량을 조절하고, Checksum으로 오류를 확인한다. 통신이 완료되면 FIN과 ACK를 주고받아 연결을 종료한다.
 
+TCP는 주로 모든 Data를 정확하게 받아야 하는 웹 통신, 파일 전송, 이메일 및 SSH 등에 사용한다.  
+
 ![](images/05-tcp-opening.png)
 ![](images/05-tcp-closing.png)
 
@@ -70,6 +72,8 @@ UDP는 TCP와 달리 통신 상대방과 연결을 설정하지 않고 즉시 Da
 
 UDP는 Acknowledgment를 통한 수신 확인, 손실된 UDP Datagram의 재전송, 도착 순서 보장, Flow Control 및 Congestion Control 기능을 제공하지 않는다. 하지만 Checksum을 통해 전송 중 발생한 오류를 확인할 수 있다. TCP는 기본적으로 `1:1` 통신을 사용하지만, UDP는 `1:1` 통신뿐만 아니라 Broadcast와 Multicast를 통한 `1:many` 통신도 지원한다.
 
+UDP는 TCP와 달리 상대방이 Data를 정상적으로 수신했는지 확인하는 ACK를 기다리지 않고 전송하므로 처리 과정이 단순하고 전송 속도가 빠르다. 따라서 일부 Data가 손실되더라도 실시간 전송이 중요한 인터넷 전화, 영상 통화, 실시간 방송 및 온라인 게임 등에 주로 사용한다.
+
 ### UDP Header
 
 ![](images/05-udp-header.png)
@@ -82,10 +86,9 @@ UDP Header 구성 요소
 - Length: UDP Header와 Data를 포함한 전체 길이
 - Checksum: UDP Header와 Data의 오류 확인
 
-![](images/05-udp-header.png)
+---
 
-
-
+## 동작 원리
 
 
 
