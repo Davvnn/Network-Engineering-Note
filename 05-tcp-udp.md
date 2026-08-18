@@ -144,14 +144,14 @@ UDP Header 구성 요소
 ## 명령어
 
 ```
-R1# show tcp brief all
-```
-Cisco 장비 자체에 생성된 TCP Connection의 Local Address, Foreign Address, Port Number 및 Connection State를 확인한다.
-
-```
 R1# show tcp
 ```
 TCP Connection의 Sequence Number, Acknowledgment Number, Window Size 및 재전송 정보를 상세하게 확인한다.
+
+```
+R1# show tcp brief all
+```
+Cisco 장비 자체에 생성된 TCP Connection의 Local Address, Foreign Address, Port Number 및 Connection State를 확인한다.
 
 ```
 R1# show udp
