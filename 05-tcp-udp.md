@@ -166,7 +166,7 @@ Cisco 장비에서 사용 중인 UDP Socket과 Port 정보를 확인한다.
 
 1\. TCP 통신이 실패하면 단말의 Source IP Address, Destination IP Address, Source Port 및 Destination Port가 올바른지 확인한다.
 
-2\. Wireshark를 실행한 후 목적지 웹사이트에 접속하여 해당 TCP 통신의 Packet을 Capture한다.
+2\. Wireshark를 실행한 후 목적지 서비스 접속하여 해당 TCP 통신의 Packet을 Capture한다.
 
 3\. Wireshark에서 TCP Flag를 확인하여 3-Way Handshake가 정상적으로 진행되는지 확인한다.
 - 출발지 → 목적지: SYN
