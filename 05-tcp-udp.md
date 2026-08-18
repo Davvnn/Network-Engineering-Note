@@ -90,7 +90,41 @@ UDP Header 구성 요소
 
 ## 동작 원리
 
+### TCP Connection
 
+1\. 클라이언트는 서버와 TCP 연결을 설정하기 위해 SYN Segment를 전송한다.
+
+2\. 서버는 SYN을 수신하고 SYN과 ACK Flag가 설정된 Segment를 클라이언트에게 전송한다.
+
+3\. 클라이언트는 SYN-ACK를 수신하고 ACK Segment를 서버에게 전송한다.
+
+4\. 3-Way Handshake가 정상적으로 완료되면 TCP Connection State가 `ESTABLISHED`가 되고 Data를 전송할 수 있다.
+
+5\. Application Data에 TCP Header가 추가되어 TCP Segment가 생성되고 목적지 장비로 전송된다.
+
+6\. 수신 장비의 TCP는 Destination Port를 확인하여 해당 Port를 사용하는 Application에 Data를 전달한다.
+
+7\. 수신 장비는 Sequence Number를 확인하여 Data를 올바른 순서로 재조립한다.
+
+8\. Data를 정상적으로 수신하면 다음으로 받기를 기대하는 Byte 번호를 Acknowledgment Number로 지정하여 ACK를 전송한다.
+
+9\. 송신 장비는 ACK를 확인하고 다음 Data를 전송한다.
+
+10\. 송신 장비는 일정 시간 안에 수신 장비로부터 ACK를 받지 못하면 TCP Segment가 손실된 것으로 판단하고 해당 Segment를 다시 전송한다.
+
+11\. 수신 장비는 Sequence Number를 확인하여 재전송된 Segment를 올바른 위치에 재조립하고, 중복된 Data는 제거한다.
+
+12\. 클라이언트는 Data 전송을 완료하면 FIN과 ACK Flag가 설정된 Segment를 서버에게 전송한다.
+
+13\. 서버는 클라이언트의 FIN을 수신하고 ACK Segment를 전송한다.
+
+14\. 서버도 Data 전송을 완료하면 FIN과 ACK Flag가 설정된 Segment를 클라이언트에게 전송한다.
+
+15\. 클라이언트는 서버의 FIN을 수신하고 마지막 ACK Segment를 전송한다.
+
+16\. 서버는 마지막 ACK를 수신하면 연결을 종료하고, 클라이언트는 마지막 ACK를 전송한 후 `TIME-WAIT` 상태를 거쳐 연결을 종료한다.
+
+### UDP Connection
 
 
 
