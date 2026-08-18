@@ -508,4 +508,3 @@ UDP는 항상 TCP보다 빠른가?
 TCP Connection이 `ESTABLISHED` 상태라는 것은 무엇을 의미하는가?
 - TCP 3-Way Handshake가 완료되어 두 장비가 TCP Data를 주고받을 수 있는 상태라는 의미이다.
 ````
-
