@@ -126,11 +126,55 @@ UDP Header 구성 요소
 
 ### UDP Connection
 
+1\. Application은 전달할 Data를 생성한다.
 
+2\. UDP Header에 Source Port와 Destination Port가 추가되어 UDP Datagram이 생성된다.
 
+3\. UDP Datagram은 IP Packet 안에 Encapsulation된다.
 
+4\. 출발지 장비는 별도의 연결 설정 과정 없이 UDP Datagram을 목적지 장비로 전송한다.
 
+5\. 목적지 장비는 UDP Header의 Destination Port를 확인한다.
 
+6\. 목적지 장비는 해당 Port를 사용하는 Application에 Data를 전달한다.
+- UDP는 Data의 수신 여부를 확인하는 ACK 메시지를 주고받지 않으므로, UDP Datagram을 전송한 후 목적지 Application이 Data를 정상적으로 수신했는지 확인하지 않는다. 또한 ACK를 기다리거나 손실된 Data를 재전송하는 과정이 없어 TCP보다 전송 과정이 단순하고 빠르다.
+
+---
+
+## 실무 질문
+
+TCP와 UDP는 어떤 역할을 하는가?
+- Transport Layer에서 Port Number를 사용하여 출발지 Application의 Data를 목적지 장비의 Application까지 전달한다.
+
+TCP와 UDP가 사용하는 Protocol Number는 무엇인가?
+- TCP는 `6`, UDP는 `17`을 사용한다.
+
+TCP와 UDP의 가장 큰 차이점은 무엇인가?
+- TCP는 Connection-Oriented 프로토콜이며, Data의 수신 여부와 순서를 확인하고 손실된 Data를 재전송한다. UDP는 Connectionless 프로토콜이며, Data의 수신 여부를 확인하지 않고 순서 관리와 재전송 기능도 제공하지 않는다.
+
+Port Number는 어떤 용도로 사용하는가?
+- 장비에서 실행 중인 여러 Application과 서비스를 구분하기 위해 사용한다.
+
+TCP 3-Way Handshake의 순서는 어떻게 되는가?
+- 클라이언트가 SYN을 전송하고 서버가 SYN-ACK로 응답한 후 클라이언트가 ACK를 전송한다.
+
+Sequence Number는 어떤 역할을 하는가?
+- 전송되는 Byte의 순서를 구분하여 수신 장비가 Data를 올바른 순서로 재조립할 수 있도록 한다.
+
+Acknowledgment Number는 무엇을 의미하는가?
+- 상대방에게 다음으로 받기를 기대하는 Byte의 Sequence Number를 알려준다.
+
+TCP Segment가 손실되면 어떻게 되는가?
+- 일정 시간 안에 ACK를 받지 못하거나 Duplicate ACK를 여러 번 수신하면 손실된 TCP Segment를 재전송한다.
+
+TCP FIN과 RST의 차이는 무엇인가?
+- FIN은 TCP Connection을 정상적인 절차에 따라 종료할 때 사용하고, RST는 TCP Connection을 즉시 종료하거나 연결 요청을 거부할 때 사용한다.
+
+UDP Datagram이 손실되면 어떻게 되는가?
+- UDP 자체적으로는 손실을 확인하거나 재전송하지 않는다.
+
+TCP Connection이 `ESTABLISHED` 상태라는 것은 무엇을 의미하는가?
+- TCP 3-Way Handshake가 완료되어 두 장비가 TCP Data를 주고받을 수 있는 상태라는 의미이다.
 
 
 
