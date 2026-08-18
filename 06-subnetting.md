@@ -68,74 +68,36 @@ Summary Route: `192.168.0.0/22`
 
 ## 동작 원리
 
-### Subnetting
+### VLSM 할당 과정
 
-`192.168.1.0/24` Network를 네 개의 동일한 Subnet으로 나눈다.
+1\. 각 Network에 필요한 Host 수를 확인한다.
 
-1\. 네 개의 Subnet이 필요하므로 Host 영역에서 `2 Bit`를 가져온다.
+2\. Host 수가 많은 Network부터 필요한 Prefix Length를 계산한다.
 
+3\. 가장 큰 Subnet에 IP Address 대역을 먼저 할당한다.
+
+4\. 이후 남은 대역에 더 작은 Subnet을 순서대로 할당한다.
+
+5\. 각 Subnet의 주소 범위가 서로 겹치지 않는지 확인한다.
+
+### CIDR Route Summarization 과정
+
+1\. 하나의 Summary Route로 묶을 Network들을 확인한다.
+
+2\. 각 Network가 동일한 Prefix Length를 사용하고 주소 범위가 연속되는지 확인한다.
+
+3\. 각 Network Address를 Binary로 변환하여 앞에서부터 공통되는 Bit를 확인한다.
 ```
-2^2 = 4 Subnets
+192.168.0.0 = 11000000.10101000.000000|00.00000000
+192.168.1.0 = 11000000.10101000.000000|01.00000000
+192.168.2.0 = 11000000.10101000.000000|10.00000000
+192.168.3.0 = 11000000.10101000.000000|11.00000000
 ```
+4\. 공통되는 Bit 수를 Summary Route의 Prefix Length로 지정한다.
 
-2\. Prefix Length는 `/24`에서 `/26`으로 변경된다.
+5\. 공통 Bit 이후의 값을 모두 `0`으로 설정하여 Summary Network Address를 구한다.
 
-```
-Subnet Mask: 255.255.255.192
-```
 
-3\. Host Bit는 `6개`가 남으므로 각 Subnet은 `64개`의 IP Address를 가진다.
-
-```
-2^6 = 64
-```
-
-4\. Network Address와 Broadcast Address를 제외하면 `62개`의 Host Address를 사용할 수 있다.
-
-```
-64 - 2 = 62
-```
-
-5\. Block Size는 `64`이며 다음과 같이 Subnet이 나뉜다.
-
-- `192.168.1.0/26`
-  - Usable Host: `192.168.1.1~192.168.1.62`
-  - Broadcast Address: `192.168.1.63`
-
-- `192.168.1.64/26`
-  - Usable Host: `192.168.1.65~192.168.1.126`
-  - Broadcast Address: `192.168.1.127`
-
-- `192.168.1.128/26`
-  - Usable Host: `192.168.1.129~192.168.1.190`
-  - Broadcast Address: `192.168.1.191`
-
-- `192.168.1.192/26`
-  - Usable Host: `192.168.1.193~192.168.1.254`
-  - Broadcast Address: `192.168.1.255`
-
-### CIDR Route Summarization
-
-다음 네 개의 연속된 Network를 하나의 Summary Route로 묶을 수 있다.
-
-```
-192.168.0.0/24
-192.168.1.0/24
-192.168.2.0/24
-192.168.3.0/24
-```
-
-Summary Route:
-
-```
-192.168.0.0/22
-```
-
-`192.168.0.0/22`는 `192.168.0.0`부터 `192.168.3.255`까지의 주소 범위를 포함한다.
-
-Route Summarization을 사용하면 Routing Table의 Route 수와 Routing Update의 양을 줄일 수 있다.
-
----
 
 ## 예시 및 구성도
 
