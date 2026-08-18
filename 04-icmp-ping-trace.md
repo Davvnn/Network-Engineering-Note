@@ -28,8 +28,6 @@ Traceroute는 IP Header의 TTL 값을 `1`부터 순차적으로 증가시켜 Pac
 
 Windows의 `tracert`는 일반적으로 ICMP Echo Request를 사용한다. Cisco와 Linux의 `traceroute`는 일반적으로 UDP를 사용한다.
 
-![](images/04-icmp-trace.png)
-
 ---
 
 ## 동작 원리
@@ -109,6 +107,8 @@ PC2
 
 ### Ping
 
+![](images/04-icmp-ping.png)
+
 PC1이 PC2의 IP Address인 `192.168.2.10`으로 Ping을 전송한다.
 
 1\. PC1은 PC2가 다른 네트워크에 있는 것을 확인한다.
@@ -124,6 +124,8 @@ PC1이 PC2의 IP Address인 `192.168.2.10`으로 Ping을 전송한다.
 6\. PC1은 Echo Reply를 수신하고 PC2와 IP 통신이 가능한 것을 확인한다.
 
 ### Traceroute
+
+![](images/04-icmp-traceroute.png)
 
 PC1이 PC2의 IP Address인 `192.168.2.10`으로 Traceroute를 실행한다.
 
