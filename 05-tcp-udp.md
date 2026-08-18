@@ -2,35 +2,26 @@
 
 ## 개념
 
-TCP와 UDP는 Transport Layer에서 동작하며, 출발지 장비의 Application Data를 목적지 장비의 Application까지 전달하는 프로토콜이다.
-
-TCP와 UDP는 Port Number를 사용하여 장비에서 실행 중인 여러 Application을 구분한다.
+TCP와 UDP는 Transport Layer에서 동작하며, 출발지 장비의 Application Data를 목적지 장비의 Application까지 전달하는 프로토콜이다. TCP와 UDP는 Port Number를 사용하여 Application을 구분한다.
 
 Application Data에 TCP Header가 추가되면 TCP Segment가 되고, UDP Header가 추가되면 UDP Datagram이 된다. 이후 IP Header가 추가되어 IP Packet으로 Encapsulation된다.
-
 - TCP Protocol Number: `6`
 - UDP Protocol Number: `17`
-
-![](images/05-tcp-udp-encapsulation.png)
 
 ### Port Number
 
 Port Number는 장비에서 실행 중인 Application이나 서비스를 구분하는 번호이다.
 
 TCP와 UDP는 각각 `0`부터 `65535`까지의 Port Number를 사용한다.
+- Well-Known Port: `0~1023` HTTP, HTTPS, SSH처럼 널리 알려진 표준 서비스가 사용하는 Port 범위이다.
+- Registered Port: `1024~49151` 특정 Application이나 서비스를 위해 등록하여 사용하는 Port 범위이다.
+- Dynamic/Private Port: `49152~65535` 클라이언트가 서버에 접속할 때 운영체제로부터 임시로 할당받는 port 범위이다.
 
-- Well-Known Port: `0~1023`
-- Registered Port: `1024~49151`
-- Dynamic/Private Port: `49152~65535`
-
-서버는 일반적으로 서비스에 지정된 Port Number를 사용하고, 클라이언트는 운영체제가 임시로 할당한 Source Port를 사용한다.
-
-예를 들어 PC1이 Server1의 TCP Port `443`에 접속하면 다음과 같이 Port Number가 지정될 수 있다.
+서버는 일반적으로 서비스에 Well-Known Port Number를 사용하고, 클라이언트는 운영체제가 임시로 할당한 Dynamic Port Number를 사용한다. 예를 들어 PC1이 Server1의 TCP Port `443`에 접속하면 다음과 같이 Port Number가 지정될 수 있다.
 
 ```
 TCP 192.168.1.10:50000 → 192.168.1.20:443
 ```
-
 - Source Port: `50000`
 - Destination Port: `443`
 
@@ -40,122 +31,8 @@ Server1이 PC1에게 응답할 때는 Source Port와 Destination Port의 방향�
 TCP 192.168.1.20:443 → 192.168.1.10:50000
 ```
 
-하나의 TCP 또는 UDP 통신은 일반적으로 다음 다섯 가지 정보인 5-Tuple로 구분한다.
+TCP와 UDP의 Port Number는 서로 별도로 관리되어 하나의 장비에서 TCP Port `5000`과 UDP Port `5000`을 동시에 사용할 수 있다.
 
-- Protocol
-- Source IP Address
-- Source Port
-- Destination IP Address
-- Destination Port
-
-TCP와 UDP의 Port Number는 서로 별도로 관리된다. 따라서 하나의 장비에서 TCP Port `5000`과 UDP Port `5000`을 동시에 사용할 수 있다.
-
-### TCP
-
-TCP(Transmission Control Protocol)는 Data를 전송하기 전에 통신 상대방과 연결을 설정하는 연결 지향형 프로토콜이다.
-
-TCP는 Sequence Number와 Acknowledgment Number를 사용하여 Data가 정상적으로 전달되었는지 확인한다. TCP Segment가 손실되면 재전송하고, 순서가 바뀌어 도착하면 올바른 순서로 재조립한다.
-
-TCP의 주요 특징은 다음과 같다.
-
-- 3-Way Handshake를 통한 연결 설정
-- Sequence Number를 통한 Data 순서 관리
-- Acknowledgment를 통한 수신 확인
-- 손실된 TCP Segment 재전송
-- 중복된 TCP Segment 제거
-- Flow Control을 통한 전송량 조절
-- Congestion Control을 통한 혼잡 조절
-- Checksum을 통한 오류 확인
-- 4-Way Handshake를 통한 연결 종료
-
-TCP는 Application Data를 연속된 Byte Stream으로 처리한다.
-
-### TCP Header
-
-TCP Header의 기본 크기는 `20 Byte`이며, TCP Option이 포함되면 Header의 크기가 증가할 수 있다.
-
-TCP Header의 주요 항목은 다음과 같다.
-
-- Source Port: 출발지 Application의 Port Number
-- Destination Port: 목적지 Application의 Port Number
-- Sequence Number: 전송하는 Data의 시작 Byte 번호
-- Acknowledgment Number: 다음에 수신하기를 기대하는 Byte 번호
-- Header Length: TCP Header의 길이
-- Flags: 연결 설정, 응답 및 종료 등의 상태 표시
-- Window Size: 수신 장비가 추가로 받을 수 있는 Data의 크기
-- Checksum: TCP Header와 Data의 오류 확인
-- Options: TCP의 추가 기능 정보
-
-![](images/05-tcp-header.png)
-
-### TCP Flags
-
-TCP Flags는 TCP Segment의 목적과 연결 상태를 나타낸다.
-
-- SYN: TCP 연결 설정 요청
-- ACK: TCP Segment를 정상적으로 수신했다는 응답
-- FIN: TCP 연결을 정상적으로 종료하기 위한 요청
-- RST: TCP 연결을 즉시 종료하거나 연결 요청을 거부
-- PSH: 수신한 Data를 Application에 빠르게 전달하도록 요청
-- URG: 긴급 Data가 포함되어 있음을 표시
-
-### UDP
-
-UDP(User Datagram Protocol)는 Data를 전송하기 전에 연결을 설정하지 않는 비연결형 프로토콜이다.
-
-UDP는 TCP와 달리 3-Way Handshake, Acknowledgment, 재전송 및 순서 관리 기능을 제공하지 않는다.
-
-UDP의 주요 특징은 다음과 같다.
-
-- 연결 설정 과정 없이 즉시 Data 전송
-- TCP보다 작은 Header 사용
-- Acknowledgment를 통한 수신 확인 기능 없음
-- 손실된 UDP Datagram 재전송 기능 없음
-- UDP Datagram의 도착 순서 보장 없음
-- Flow Control과 Congestion Control 기능 없음
-- Checksum을 통한 오류 확인
-- Broadcast와 Multicast 통신 가능
-
-UDP는 Application이 전달한 하나의 Data 단위를 하나의 UDP Datagram으로 처리한다.
-
-UDP Datagram이 손실되어도 UDP 자체적으로는 이를 확인하거나 재전송하지 않는다. 필요한 경우 Application에서 응답 확인과 재전송 기능을 구현해야 한다.
-
-### UDP Header
-
-UDP Header의 크기는 항상 `8 Byte`이다.
-
-UDP Header는 다음 네 가지 항목으로 구성된다.
-
-- Source Port: 출발지 Application의 Port Number
-- Destination Port: 목적지 Application의 Port Number
-- Length: UDP Header와 Data를 포함한 전체 길이
-- Checksum: UDP Header와 Data의 오류 확인
-
-UDP Header에는 TCP에서 사용하는 Sequence Number, Acknowledgment Number, Window Size 및 Flags가 없다.
-
-![](images/05-udp-header.png)
-
-### TCP와 UDP의 차이점
-
-TCP는 Data를 전송하기 전에 연결을 설정하고, Data가 정상적으로 전달되었는지 확인한다.
-
-- 연결 지향형 프로토콜
-- 3-Way Handshake 사용
-- Acknowledgment 사용
-- Data 순서 보장
-- 손실된 TCP Segment 재전송
-- 기본 Header 크기 `20 Byte`
-
-UDP는 연결 설정과 수신 확인 과정 없이 UDP Datagram을 바로 전송한다.
-
-- 비연결형 프로토콜
-- 연결 설정 과정 없음
-- Acknowledgment 사용하지 않음
-- Data 순서 보장하지 않음
-- 손실된 UDP Datagram 재전송하지 않음
-- Header 크기 `8 Byte`
-
----
 
 ## 동작 원리
 
