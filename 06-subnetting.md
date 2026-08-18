@@ -28,42 +28,41 @@ Subnetting은 하나의 큰 Network를 여러 개의 작은 Subnet으로 나누�
 - Subnet당 사용 가능한 Host 수: `2^6 - 2 = 62개`
 
 생성되는 Subnet:
-
 - `192.168.1.0/26`
 - `192.168.1.64/26`
 - `192.168.1.128/26`
 - `192.168.1.192/26`
 
-
 ### VLSM
 
 VLSM(Variable Length Subnet Mask)은 하나의 Network를 필요한 Host 수에 따라 서로 다른 크기의 Subnet으로 나누는 방식이다.
+- VLSM은 하나의 IP Address 대역을 필요한 크기로 나누는 것 
 
 예를 들어 Host가 100대인 부서에는 `/25`, 20대인 부서에는 `/27`, Point-to-Point Link에는 `/30`을 할당할 수 있다.
+1\. Host가 100대인 부서에는 `/25`를 할당한다.
+- Subnet당 전체 IP Address 수: `2^7 = 128개`
+- Subnet당 사용 가능한 Host 수: `2^7 - 2 = 126개`
 
-VLSM을 적용할 때는 큰 주소 공간을 먼저 확보하기 위해 Host 수가 가장 많은 Network부터 할당한다.
+2\.Host가 20대인 부서에는 `/27`을 할당한다.
+- Subnet당 전체 IP Address 수: `2^5 = 32개`
+- Subnet당 사용 가능한 Host 수: `2^5 - 2 = 30개`
+
+3\. Point-to-Point Link에는 `/30`을 할당한다.
+- Subnet당 전체 IP Address 수: `2^2 = 4개`
+- Subnet당 사용 가능한 Host 수: `2^2 - 2 = 2개`
 
 ### CIDR
 
-CIDR(Classless Inter-Domain Routing)은 Class A, B, C와 같은 고정된 Class 기준을 사용하지 않고 Prefix Length로 Network의 크기를 표현하는 방식이다.
+CIDR(Classless Inter-Domain Routing)은 Class A, B, C와 같은 고정된 Class를 사용하지 않고, Prefix Length로 Network 범위를 지정하거나 여러 개의 연속된 Network를 하나의 Summary Route로 요약하는 방식이다.  
+- CIDR은 여러 개의 연속된 IP Address 대역을 하나의 Summary Route로 묶는 것
 
-```
-192.168.1.0/24
-```
+다음 네 개의 연속된 Network를 하나의 Summary Route로 묶는다.
+- `192.168.0.0/24`
+- `192.168.1.0/24`
+- `192.168.2.0/24`
+- `192.168.3.0/24`
 
-CIDR은 필요한 크기에 맞게 IP Address를 할당하거나 여러 개의 연속된 Network를 하나의 Summary Route로 묶을 때 사용한다.
-
-### 주요 Prefix Length
-
-- `/24`: Subnet Mask `255.255.255.0`, 사용 가능한 Host `254`
-- `/25`: Subnet Mask `255.255.255.128`, 사용 가능한 Host `126`
-- `/26`: Subnet Mask `255.255.255.192`, 사용 가능한 Host `62`
-- `/27`: Subnet Mask `255.255.255.224`, 사용 가능한 Host `30`
-- `/28`: Subnet Mask `255.255.255.240`, 사용 가능한 Host `14`
-- `/29`: Subnet Mask `255.255.255.248`, 사용 가능한 Host `6`
-- `/30`: Subnet Mask `255.255.255.252`, 사용 가능한 Host `2`
-- `/31`: Point-to-Point Link에서 사용
-- `/32`: 하나의 특정 Host Address를 나타낼 때 사용
+Summary Route: `192.168.0.0/22`
 
 ---
 
