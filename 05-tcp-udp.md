@@ -62,7 +62,7 @@ TCP Header의 구성 요소
 - Acknowledgment Number: 다음에 수신하기를 기대하는 Byte 번호
 - Header Length: TCP Header의 길이
 - Flags: TCP Segment의 연결 상태
-- Window Size: 수신 장비가 다음 ACK를 보내기 전까지 추가로 받을 수 있는 Data의 크기
+- Window Size: 수신 장비가 추가로 수신할 수 있다고 알리는 Data의 크기
 - Checksum: TCP Header와 Data에 오류가 있는지 확인하는 값  
 - Options: TCP의 추가 기능 정보
 
@@ -90,7 +90,7 @@ UDP Header 구성 요소
 
 ## 동작 원리
 
-### TCP Connection
+### TCP 통신
 
 1\. 클라이언트는 서버와 TCP 연결을 설정하기 위해 SYN Segment를 전송한다.
 
@@ -124,7 +124,7 @@ UDP Header 구성 요소
 
 16\. 서버는 마지막 ACK를 수신하면 연결을 종료하고, 클라이언트는 마지막 ACK를 전송한 후 `TIME-WAIT` 상태를 거쳐 연결을 종료한다.
 
-### UDP Connection
+### UDP 통
 
 1\. Application은 전달할 Data를 생성한다.
 
