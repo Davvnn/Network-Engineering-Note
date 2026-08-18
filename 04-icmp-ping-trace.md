@@ -203,24 +203,50 @@ PC1> ipconfig
 
 ## Troubleshooting
 
-1\. Ping이 실패하면 인터페이스 상태와 IP Address 설정을 확인한다.
+1\. Ping이 실패하면 단말의 IP Address, Subnet Mask, Default Gateway 설정이 올바른지 확인한다.
 
-2\. 중간 경로의 Routing Table과 ACL 설정을 확인한다.
+2\. 해당 단말 VLAN의 Default Gateway를 가지고 있는 백본 스위치에 접속하여ARP 정보를 확인한다.
+```
+DSW1# show ip arp | include <Host IP>
+```
 
-3\. Traceroute 결과가 특정 구간에서 멈추면 해당 구간의 경로와 ICMP 차단 여부를 확인한다.
+3\. ARP 정보가 확인되지 않으면 단말이 연결된 Access Switch부터 L3 스위치까지 다음 항목을 확인한다.
+- 인터페이스 상태
+- Access VLAN 설정
+- Trunk allowed VLAN 설정
+- VLAN Database
+
+4\. 내부 네트워크에서는 Ping이 성공하지만 외부 목적지로 Ping이 실패하면 Traceroute를 실행하여 어느 구간부터 응답이 없는지 확인한다.
+
+5\. 중간 라우터의 Routing Table에 목적지로 가는 경로와 출발지로 돌아오는 Return Path가 있는지 확인한다.
+
+6\. 방화벽이나 ACL에서 ICMP Echo Request, Echo Reply 또는 Time Exceeded 메시지를 차단하고 있는지 확인한다.
+
+7\. Traceroute 결과에 `* * *`가 표시되더라도 해당 장비나 경로에 장애가 발생한 것은 아니다.
+- 중간 장비가 ICMP 메시지에 응답하지 않을 수 있다.
+- 방화벽이나 ACL에서 ICMP 메시지를 차단했을 수 있다.
+- 장비가 ICMP 응답을 제한하고 있을 수 있다.
+
+8\. Ping은 성공하지만 실제 서비스에 접속할 수 없다면 ICMP 통신은 가능하지만 TCP 또는 UDP Port가 차단되었거나 Application에 문제가 있을 수 있다.
 
 ---
 
 ## 실무 질문
 
 ICMP는 어떤 용도로 사용하는가?
-- 내용 작성
+- IP 통신 중 발생한 오류를 알리거나 네트워크의 연결 상태를 확인할 때 사용한다.
 
 Ping은 어떤 방식으로 통신 상태를 확인하는가?
-- 내용 작성
+- ICMP Echo Request를 목적지에 전송하고 Echo Reply가 돌아오는지 확인하여 IP 통신 상태를 확인한다.
+
+Ping이 성공하면 서비스도 정상이라고 판단할 수 있는가?
+- Ping 성공은 목적지와 ICMP 통신이 가능하다는 의미일 뿐, TCP 또는 UDP를 사용하는 Application이 정상이라는 의미는 아니다.
+
+Ping이 실패하면 반드시 네트워크 장애인가?
+- 방화벽이나 ACL에서 ICMP를 차단했거나 목적지 장비가 ICMP에 응답하지 않도록 설정했을 수 있으므로 반드시 네트워크 장애라고 판단할 수는 없다.
 
 Traceroute는 어떤 방식으로 중간 경로를 확인하는가?
-- 내용 작성
+- TTL 값을 `1`부터 순차적으로 증가시키고 각 라우터가 보내는 ICMP Time Exceeded 메시지를 확인하여 중간 경로를 파악한다.
 
-Ping이 실패하면 반드시 통신 장애인가?
-- 내용 작성
+Traceroute에서 `* * *`가 표시되는 이유는 무엇인가?
+- 제한 시간 안에 ICMP 응답을 받지 못했기 때문이다. ICMP가 차단되었거나 장비가 응답하지 않는 경우에도 표시될 수 있다.
