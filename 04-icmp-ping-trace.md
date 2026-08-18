@@ -109,18 +109,45 @@ PC2
 
 ### Ping
 
+PC1이 PC2의 IP Address인 `192.168.2.10`으로 Ping을 전송한다.
 
+1\. PC1은 PC2가 다른 네트워크에 있는 것을 확인한다.
 
+2\. PC1은 Default Gateway인 R1의 MAC Address를 Destination MAC Address로 지정하여 ICMP Echo Request를 전송한다.
 
+3\. R1은 Routing Table을 확인하고 Packet을 R2 방향으로 전달한다.
 
+4\. R2는 `192.168.2.0/24` 네트워크가 Directly Connected되어 있는 것을 확인하고 Packet을 PC2에게 전달한다.
 
+5\. PC2는 ICMP Echo Request를 수신하고 ICMP Echo Reply를 PC1에게 전송한다.
+
+6\. PC1은 Echo Reply를 수신하고 PC2와 IP 통신이 가능한 것을 확인한다.
 
 ### Traceroute
 
+PC1이 PC2의 IP Address인 `192.168.2.10`으로 Traceroute를 실행한다.
 
+1\. PC1은 TTL을 `1`로 지정한 Probe Packet을 전송한다.
 
+2\. R1에서 TTL이 `0`이 되고, R1은 ICMP Time Exceeded 메시지를 PC1에게 전송한다.
+- 첫 번째 경로: `192.168.1.1`
 
+3\. PC1은 TTL을 `2`로 지정한 Probe Packet을 전송한다.
 
+4\. R2에서 TTL이 `0`이 되고, R2는 ICMP Time Exceeded 메시지를 PC1에게 전송한다.
+- 두 번째 경로: `10.0.12.2`
+
+5\. PC1은 TTL을 `3`으로 지정한 Probe Packet을 전송한다.
+
+6\. Probe Packet이 PC2에 도착하고 PC2가 응답한다.
+- 최종 목적지: `192.168.2.10`
+
+Output:
+```
+1    192.168.1.1\
+2    10.0.12.2\
+3    192.168.2.10
+```
 ---
 
 ## 명령어
