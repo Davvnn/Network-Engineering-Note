@@ -43,7 +43,7 @@ VLSM(Variable Length Subnet Mask)은 하나의 Network를 필요한 Host 수에 
 - Subnet당 전체 IP Address 수: `2^7 = 128개`
 - Subnet당 사용 가능한 Host 수: `2^7 - 2 = 126개`
 
-2\.Host가 20대인 부서에는 `/27`을 할당한다.
+2\. Host가 20대인 부서에는 `/27`을 할당한다.
 - Subnet당 전체 IP Address 수: `2^5 = 32개`
 - Subnet당 사용 가능한 Host 수: `2^5 - 2 = 30개`
 
@@ -174,76 +174,12 @@ Comment:
 
 ---
 
-## 명령어
-
-### VLSM 
-
-```
-DSW1(config)# interface vlan 10
-DSW1(config-if)# ip address 192.168.10.1 255.255.255.128
-```
-Sales Network의 Gateway와 `/25` Subnet Mask를 설정한다.
-
-```
-DSW1(config)# interface vlan 20
-DSW1(config-if)# ip address 192.168.10.129 255.255.255.192
-```
-Development Network의 Gateway와 `/26` Subnet Mask를 설정한다.
-
-```
-DSW1(config)# interface vlan 30
-DSW1(config-if)# ip address 192.168.10.193 255.255.255.224
-```
-Management Network의 Gateway와 `/27` Subnet Mask를 설정한다.
-
-```
-DSW1(config)# ip dhcp pool SALES
-DSW1(dhcp-config)# network 192.168.10.0 255.255.255.128
-DSW1(dhcp-config)# default-router 192.168.10.1
-```
-VLSM으로 나눈 Subnet에 맞게 DHCP Pool을 설정한다.
-
-```
-DSW1# show running-config interface vlan <VLAN ID>
-```
-SVI에 설정된 IP Address와 Subnet Mask를 확인한다.
-
-```
-DSW1# show ip interface vlan <VLAN ID>
-```
-특정 SVI의 IP Address, Prefix Length 및 동작 상태를 확인한다.
-
-```
-DSW1# show ip route connected
-```
-VLSM으로 나눈 Subnet이 Directly Connected Route로 등록되었는지 확인한다.
-
-```
-DSW1# show ip dhcp pool
-```
-DHCP Pool에 설정된 Network와 Subnet Mask를 확인한다.
-
-### CIDR 
-
-```
-R2(config)# ip route 192.168.20.0 255.255.252.0 <Branch Router IP>
-```
-Upstream Router에서 `192.168.20.0/22` Summary Route의 Next-Hop을 Branch Router로 지정하여 Static Route로 설정한다.
-
-```
-R1(config)# router ospf 1
-R1(config-router)# area 10 range 192.168.20.0 255.255.252.0
-```
-OSPF 환경에서는 ABR 역할을 하는 Branch Router가 Area `10`의 연속된 Route를 `192.168.20.0/22`로 요약하여 다른 OSPF Area에 광고하도록 설정한다.
-
----
-
 ## Troubleshooting
 
 ### VLSM 적용 후 다음 날 사용자들이 통신이 안 되는 경우
 
 1\. 작업 전에 해당 네트워크 대역을 사용하고 있는 사용자들에게 작업 일정과 예상되는 네트워크 중단 시간을 안내한다.
-- DHCP 사용자는은 따로 네트워크 설정을 직접 변경할 필요가 없다.
+- DHCP 사용자는 따로 네트워크 설정을 직접 변경할 필요가 없다.
 - 하지만 Static IP를 사용하는 장비의 담당자에게는 변경할 IP Address, Subnet Mask 및 Default Gateway 정보를 전달한다.
 
 2\. 장애가 전체 사용자에게 발생하는지 특정 부서나 VLAN에서만 발생하는지 확인한다.
@@ -331,7 +267,7 @@ VLSM은 무엇인가?
 - 필요한 Host 수에 따라 서로 다른 Prefix Length를 사용하여 Subnet을 나누는 방식이다.
 
 CIDR은 무엇인가?
-- 여러 개의 연속된 Network를 하나의 Summary Route로 묶는 방식이다.
+- Class 구분 없이 Prefix Length로 Network 범위를 지정하고, 여러 개의 연속된 Network를 하나의 Summary Route로 요약할 수 있는 방식이다.
 
 Route Summarization을 사용하는 이유는 무엇인가?
 - 여러 개의 연속된 Network를 하나의 Route로 묶어 Routing Table을 단순하게 관리하기 위해서이다.
