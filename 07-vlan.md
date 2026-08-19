@@ -1,1 +1,265 @@
+# VLAN / Access / Trunk / Native VLAN
 
+## 개념
+
+### VLAN
+
+VLAN(Virtual Local Area Network)은 하나의 물리적인 Switch Network를 여러 개의 논리적인 Network로 분리하는 방식이다.
+
+각 VLAN은 서로 다른 Broadcast Domain으로 동작하므로 Broadcast Traffic은 같은 VLAN에 속한 인터페이스로만 전달된다. 일반적으로 하나의 VLAN에는 하나의 IP Subnet을 할당한다.
+
+같은 VLAN에 속한 장비는 서로 다른 스위치에 연결되어 있어도 Trunk Link를 통해 Layer 2 통신을 할 수 있다. 하지만 서로 다른 VLAN에 속한 장비가 통신하려면 Router나 Layer 3 Switch를 통한 Inter-VLAN Routing이 필요하다.
+
+### Access Port
+
+Access Port는 하나의 VLAN Traffic만 전달하며 PC, Server 및 Printer와 같은 일반 단말을 연결할 때 사용한다.
+
+단말이 전송한 Untagged Frame이 Access Port로 들어오면 Switch는 해당 인터페이스에 설정된 Access VLAN에 Frame을 포함시킨다. Switch가 Access Port를 통해 단말로 Frame을 전송할 때는 VLAN Tag를 제거하여 Untagged 상태로 전송한다.
+
+### Trunk Port
+
+Trunk Port는 하나의 Link를 통해 여러 VLAN Traffic을 전달하는 인터페이스이다. Switch 간 연결이나 Switch와 Router, Firewall 및 Wireless AP를 연결할 때 주로 사용한다.
+
+Trunk Link에서는 IEEE 802.1Q Tag를 Ethernet Frame에 추가하여 Frame이 어느 VLAN에 속하는지 구분한다.
+
+Trunk의 Allowed VLAN에 포함된 VLAN만 해당 Link를 통과할 수 있다.
+
+### Native VLAN
+
+Native VLAN은 802.1Q Trunk Link에서 VLAN Tag가 없는 Untagged Frame을 처리하기 위해 사용하는 VLAN이다.
+
+Cisco Switch의 기본 Native VLAN은 VLAN `1`이며 다른 VLAN으로 변경할 수 있다. 일반적으로 Native VLAN에 속한 Frame은 Trunk Link를 통과할 때 VLAN Tag가 추가되지 않는다.
+
+Trunk Link 양쪽 Switch의 Native VLAN은 동일하게 설정해야 한다. Native VLAN이 다르면 Untagged Frame이 서로 다른 VLAN으로 처리되어 통신 장애가 발생할 수 있다.
+
+- Access VLAN: Access Port에 연결된 단말이 속하는 VLAN
+- Native VLAN: Trunk Port에서 Untagged Frame을 처리하는 VLAN
+
+---
+
+## 동작 원리
+
+### Access와 Trunk 동작 과정
+
+1\. PC1은 VLAN Tag가 없는 Ethernet Frame을 SW1의 Access Port로 전송한다.
+
+2\. SW1은 Frame이 들어온 인터페이스의 Access VLAN을 확인한다.
+- SW1의 `Gi0/1`이 VLAN `10`으로 설정되어 있다면 Frame을 VLAN `10` Traffic으로 처리한다.
+
+3\. SW1은 Source MAC Address를 VLAN `10`의 MAC Address Table에 학습한다.
+
+4\. Destination MAC Address가 다른 Switch 방향에 있다면 SW1은 Frame에 VLAN `10`을 나타내는 802.1Q Tag를 추가하여 Trunk Port로 전송한다.
+
+5\. SW2는 802.1Q Tag를 확인하여 Frame이 VLAN `10`에 속한다는 것을 확인한다.
+
+6\. SW2는 VLAN `10`의 MAC Address Table을 확인하고 PC2가 연결된 Access Port로 Frame을 전달한다.
+
+7\. SW2는 Access Port로 Frame을 전송하기 전에 VLAN Tag를 제거한다.
+
+8\. PC2는 Untagged Ethernet Frame을 수신한다.
+
+### Native VLAN 동작 과정
+
+1\. Trunk Port가 VLAN Tag가 없는 Frame을 수신한다.
+
+2\. Switch는 Untagged Frame을 해당 Trunk Port에 설정된 Native VLAN Traffic으로 처리한다.
+
+3\. Native VLAN에 속한 Frame은 기본적으로 VLAN Tag 없이 Trunk Link로 전송된다.
+
+4\. Trunk 양쪽의 Native VLAN이 다르면 동일한 Untagged Frame을 서로 다른 VLAN Traffic으로 처리할 수 있다.
+
+---
+
+## 예시 및 구성도
+
+### 시나리오 1
+
+회사는 영업부와 개발부의 Broadcast Domain을 분리하기 위해 다음과 같이 VLAN을 구성한다.
+
+PC1
+- IP Address: `192.168.10.10/24`
+- VLAN: `10`
+- 연결 인터페이스: SW1 `Gi0/1`
+
+PC2
+- IP Address: `192.168.10.20/24`
+- VLAN: `10`
+- 연결 인터페이스: SW2 `Gi0/1`
+
+PC3
+- IP Address: `192.168.20.10/24`
+- VLAN: `20`
+- 연결 인터페이스: SW1 `Gi0/2`
+
+PC4
+- IP Address: `192.168.20.20/24`
+- VLAN: `20`
+- 연결 인터페이스: SW2 `Gi0/2`
+
+SW1과 SW2
+- Trunk 인터페이스: `Gi0/24`
+- Allowed VLAN: `10,20,99`
+- Native VLAN: `99`
+
+1\. PC1이 PC2에게 Frame을 전송하면 SW1은 Frame을 VLAN `10` Traffic으로 처리한다.
+
+2\. SW1은 Trunk Link로 Frame을 전송하면서 VLAN `10` Tag를 추가한다.
+
+3\. SW2는 VLAN Tag를 확인하고 Frame을 PC2가 연결된 VLAN `10` Access Port로 전달한다.
+
+4\. PC3과 PC4의 VLAN `20` Traffic도 동일한 Trunk Link를 사용하지만 VLAN Tag를 통해 VLAN `10` Traffic과 구분된다.
+
+5\. PC1과 PC3은 서로 다른 VLAN에 속하므로 Layer 2 통신만으로는 서로 통신할 수 없다.
+- 서로 다른 VLAN 간 통신에는 Inter-VLAN Routing이 필요하다.
+
+Comment:
+
+VLAN을 사용하면 부서별로 Broadcast Domain을 분리하여 불필요한 Broadcast Traffic과 장애의 영향 범위를 줄일 수 있다. 또한 부서별 VLAN을 기준으로 ACL이나 Firewall Policy를 적용하여 통신을 제어할 수 있다.
+
+---
+
+## 명령어
+
+### VLAN 구성
+
+```
+SW1(config)# vlan 10
+SW1(config-vlan)# name SALES
+SW1(config)# vlan 20
+SW1(config-vlan)# name DEVELOPMENT
+SW1(config)# vlan 99
+SW1(config-vlan)# name NATIVE
+```
+
+VLAN `10`, `20`, `99`를 생성하고 VLAN 이름을 설정한다.
+
+### Access Port 구성
+
+```
+SW1(config)# interface gigabitethernet 0/1
+SW1(config-if)# switchport mode access
+SW1(config-if)# switchport access vlan 10
+```
+
+`Gi0/1`을 Access Port로 설정하고 VLAN `10`에 할당한다.
+
+### Trunk Port 구성
+
+```
+SW1(config)# interface gigabitethernet 0/24
+SW1(config-if)# switchport mode trunk
+SW1(config-if)# switchport trunk allowed vlan 10,20,99
+SW1(config-if)# switchport trunk native vlan 99
+```
+
+`Gi0/24`를 Trunk Port로 설정하고 VLAN `10`, `20`, `99`만 통과하도록 허용한다. Native VLAN은 VLAN `99`로 설정한다.
+
+### VLAN 확인
+
+```
+SW1# show vlan brief
+```
+
+Switch에 생성된 VLAN과 Access Port의 VLAN 할당 상태를 확인한다.
+
+```
+SW1# show interfaces trunk
+```
+
+Trunk Port의 동작 상태, Native VLAN 및 Allowed VLAN을 확인한다.
+
+```
+SW1# show interfaces gigabitethernet 0/1 switchport
+```
+
+특정 인터페이스의 Access VLAN과 Administrative 및 Operational Mode를 확인한다.
+
+```
+SW1# show mac address-table vlan 10
+```
+
+VLAN `10`에서 학습한 MAC Address와 인터페이스 정보를 확인한다.
+
+---
+
+## Troubleshooting
+
+### VLAN 구성 후 같은 VLAN 사용자 간 통신이 안 되는 경우
+
+1\. 장애가 하나의 단말에서만 발생하는지 같은 VLAN의 전체 사용자에게 발생하는지 확인한다.
+
+2\. 단말이 연결된 Switch 인터페이스의 동작 상태를 확인한다.
+
+```
+SW1# show interfaces status
+```
+
+3\. 단말이 연결된 인터페이스가 올바른 Access VLAN에 할당되었는지 확인한다.
+
+```
+SW1# show vlan brief
+SW1# show interfaces <Interface ID> switchport
+```
+
+4\. 해당 VLAN이 연결 경로에 있는 모든 Switch의 VLAN Database에 생성되어 있는지 확인한다.
+
+```
+SW1# show vlan brief
+```
+
+5\. Switch 사이의 인터페이스가 Trunk 상태이며 해당 VLAN이 Allowed VLAN에 포함되어 있는지 확인한다.
+
+```
+SW1# show interfaces trunk
+```
+
+6\. Trunk Link 양쪽의 Native VLAN이 동일하게 설정되어 있는지 확인한다.
+- Native VLAN이 다르면 양쪽 Switch의 Native VLAN을 동일하게 변경한다.
+
+7\. Switch의 MAC Address Table에 단말의 MAC Address가 올바른 VLAN과 인터페이스로 학습되어 있는지 확인한다.
+
+```
+SW1# show mac address-table vlan <VLAN ID>
+```
+
+8\. 단말의 IP Address와 Subnet Mask가 같은 VLAN의 Network 설계와 일치하는지 확인한다.
+
+```
+PC1> ipconfig
+```
+
+9\. 서로 다른 VLAN 간 통신만 실패한다면 SVI, Inter-VLAN Routing, ACL 및 Default Gateway를 확인한다.
+
+---
+
+## 실무 질문
+
+VLAN은 무엇인가?
+- 하나의 물리적인 Switch Network를 여러 개의 논리적인 Broadcast Domain으로 분리하는 방식이다.
+
+VLAN을 사용하는 이유는 무엇인가?
+- 부서나 서비스별로 Broadcast Domain을 분리하고 Network를 체계적으로 관리하기 위해 사용한다.
+
+Access Port는 무엇인가?
+- 하나의 VLAN Traffic을 전달하며 일반적으로 PC, Server 및 Printer와 같은 단말을 연결하는 인터페이스이다.
+
+Trunk Port는 무엇인가?
+- 하나의 Link를 통해 여러 VLAN Traffic을 전달하는 인터페이스이다.
+
+802.1Q Tag는 어떤 역할을 하는가?
+- Trunk Link를 통과하는 Ethernet Frame이 어느 VLAN에 속하는지 구분한다.
+
+Native VLAN은 무엇인가?
+- 802.1Q Trunk Link에서 VLAN Tag가 없는 Untagged Frame을 처리하는 VLAN이다.
+
+Access VLAN과 Native VLAN의 차이는 무엇인가?
+- Access VLAN은 Access Port에 연결된 단말이 속하는 VLAN이고, Native VLAN은 Trunk Port에서 Untagged Frame을 처리하는 VLAN이다.
+
+Native VLAN이 Trunk Link 양쪽에서 다르면 어떤 문제가 발생하는가?
+- Untagged Frame이 서로 다른 VLAN Traffic으로 처리되어 통신 장애가 발생할 수 있다.
+
+Trunk의 Allowed VLAN에 특정 VLAN이 포함되지 않으면 어떻게 되는가?
+- 해당 VLAN의 Frame이 Trunk Link를 통과하지 못하므로 다른 Switch에 있는 같은 VLAN 사용자와 통신할 수 없다.
+
+서로 다른 VLAN에 속한 장비가 통신하려면 무엇이 필요한가?
+- Router나 Layer 3 Switch를 통한 Inter-VLAN Routing이 필요하다.
