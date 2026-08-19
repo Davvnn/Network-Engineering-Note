@@ -182,7 +182,7 @@ Comment:
 
 1\. 장애가 전체 사용자에게 발생하는지 특정 부서나 VLAN에서만 발생하는지 확인한다.
 
-2\. 단말의 Static IP를 사용하는 경우 IP Address, Subnet Mask 및 Default Gateway가 변경된 VLSM 설계에 맞게 설정되어 있는지 확인한다.
+2\. 단말이 Static IP를 사용하는 경우 IP Address, Subnet Mask 및 Default Gateway가 변경된 VLSM 설계에 맞게 설정되어 있는지 확인한다.
 ```
 PC1> ipconfig /all
 ```
