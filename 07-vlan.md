@@ -86,10 +86,17 @@ PC3
 - VLAN: `20`
 - 연결 인터페이스: SW1 `Gi0/2`
 
+PC4
+- IP Address: `192.168.20.20/24`
+- VLAN: `20`
+- 연결 인터페이스: SW2 `Gi0/2`
+
 SW1 & SW2
 - Trunk 인터페이스: `Gi0/24`
 - Allowed VLAN: `10,20,99`
 - Native VLAN: `99`
+
+![](images/07-vlan-com.png)
 
 1\. PC1은 PC2의 MAC Address를 Destination MAC Address로 지정한 Ethernet Frame을 생성하고, 연결된 인터페이스를 통해 SW1의 `Gi0/1`로 전송한다.
 
@@ -127,28 +134,26 @@ SW1(config-vlan)# name DEVELOPMENT
 SW1(config)# vlan 99
 SW1(config-vlan)# name NATIVE
 ```
-
 VLAN `10`, `20`, `99`를 생성하고 VLAN 이름을 설정한다.
 
 ### Access Port 구성
 
 ```
-SW1(config)# interface gigabitethernet 0/1
+SW1(config)# interface gi0/1
 SW1(config-if)# switchport mode access
 SW1(config-if)# switchport access vlan 10
 ```
-
 `Gi0/1`을 Access Port로 설정하고 VLAN `10`에 할당한다.
 
 ### Trunk Port 구성
 
 ```
 SW1(config)# interface gigabitethernet 0/24
+SW1(config-if)# switchport trunk encapsulation dot1q
 SW1(config-if)# switchport mode trunk
 SW1(config-if)# switchport trunk allowed vlan 10,20,99
 SW1(config-if)# switchport trunk native vlan 99
 ```
-
 `Gi0/24`를 Trunk Port로 설정하고 VLAN `10`, `20`, `99`만 통과하도록 허용한다. Native VLAN은 VLAN `99`로 설정한다.
 
 ### VLAN 확인
@@ -156,26 +161,13 @@ SW1(config-if)# switchport trunk native vlan 99
 ```
 SW1# show vlan brief
 ```
-
-Switch에 생성된 VLAN과 Access Port의 VLAN 할당 상태를 확인한다.
+Switch에 생성된 VLAN과 할당 상태를 보여준다.
 
 ```
 SW1# show interfaces trunk
 ```
+Trunk Port의 동작 상태, Native VLAN 및 Allowed VLAN을 보여준다.
 
-Trunk Port의 동작 상태, Native VLAN 및 Allowed VLAN을 확인한다.
-
-```
-SW1# show interfaces gigabitethernet 0/1 switchport
-```
-
-특정 인터페이스의 Access VLAN과 Administrative 및 Operational Mode를 확인한다.
-
-```
-SW1# show mac address-table vlan 10
-```
-
-VLAN `10`에서 학습한 MAC Address와 인터페이스 정보를 확인한다.
 
 ---
 
