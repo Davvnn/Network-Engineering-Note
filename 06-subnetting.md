@@ -84,7 +84,7 @@ Summary Route: `192.168.0.0/22`
 
 1\. 하나의 Summary Route로 묶을 Network들을 확인한다.
 
-2\. 각 Network가 동일한 Prefix Length를 사용하고 주소 범위가 연속되는지 확인한다.
+2\. 각 Network의 주소 범위를 확인하고 하나의 Summary Prefix로 묶을 수 있는지 확인한다.
 
 3\. 각 Network Address를 Binary로 변환하여 앞에서부터 공통되는 Bit를 확인한다.
 ```
