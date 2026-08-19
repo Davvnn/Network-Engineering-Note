@@ -175,7 +175,7 @@ Trunk Port의 동작 상태, Native VLAN 및 Allowed VLAN을 보여준다.
 
 ### VLAN 구성 후 사용자 통신이 안 되는 경우
 
-1\. 백본 스위치에 접속하여 통신이 안 되는 단말의 IP Address를 ARP Table에서 확인한다.
+1\. 백본 스위치에서 통신이 안 되는 단말로 Ping을 전송한 후 ARP Table을 확인한다.
 ```
 DSW1# show ip arp | include <IP Address>
 ```
@@ -204,6 +204,7 @@ SW2# show interfaces trunk
 ```
 
 6\. Trunk Link 양쪽의 Native VLAN이 동일하게 설정되어 있는지 확인한다.
+- Native VLAN이 다르면 Untagged Frame을 서로 다른 VLAN Traffic으로 처리할 수 있다.
 - Native VLAN이 다르면 양쪽 Switch의 Native VLAN을 동일하게 변경한다.
 
 7\. 같은 VLAN 간 통신은 가능하지만 서로 다른 VLAN 간 통신만 실패한다면 SVI, Inter-VLAN Routing, ACL 및 Default Gateway를 확인한다.
