@@ -14,7 +14,7 @@ VLAN(Virtual Local Area Network)은 하나의 물리적인 LAN을 여러 개의 
 
 Access Port는 하나의 VLAN Traffic만 전달하며 PC, Server 및 Printer와 같은 일반 단말을 연결할 때 사용한다.
 
-단말이 전송한 Untagged Frame이 Access Port로 들어오면 Switch는 해당 인터페이스에 설정된 Access VLAN에 Frame을 포함시킨다. Switch가 Access Port를 통해 단말로 Frame을 전송할 때는 VLAN Tag를 제거하여 Untagged 상태로 전송한다.
+Access Port는 단말로부터 Untagged Frame을 수신하면 해당 인터페이스에 설정된 Access VLAN으로 Frame을 분류한다. 이후 Access Port를 통해 단말로 Frame을 전송할 때는 VLAN Tag가 없는 Untagged 상태로 전송한다.
 
 ### Trunk Port
 
