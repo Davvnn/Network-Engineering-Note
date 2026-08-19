@@ -192,7 +192,7 @@ PC1> ipconfig /release
 PC1> ipconfig /renew
 ```
 
-4\. 백본 스위에서 SVI의 IP Address, Subnet Mask 및 동작 상태를 확인한다.
+4\. 백본 스위치에서 SVI의 IP Address, Subnet Mask 및 동작 상태를 확인한다.
 ```
 DSW1# show ip interface brief
 DSW1# show running-config interface vlan <VLAN ID>
