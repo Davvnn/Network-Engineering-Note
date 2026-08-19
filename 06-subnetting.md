@@ -178,77 +178,81 @@ Comment:
 
 ### VLSM 적용 후 다음 날 사용자들이 통신이 안 되는 경우
 
-1\. 작업 전에 해당 네트워크 대역을 사용하고 있는 사용자들에게 작업 일정과 예상되는 네트워크 중단 시간을 안내한다.
-- DHCP 사용자는 따로 네트워크 설정을 직접 변경할 필요가 없다.
-- 하지만 Static IP를 사용하는 장비의 담당자에게는 변경할 IP Address, Subnet Mask 및 Default Gateway 정보를 전달한다.
+0\. 작업 전에 해당 네트워크 대역을 사용하고 있는 사용자들에게 작업 일정과 예상되는 네트워크 중단 시간을 안내한다.
 
-2\. 장애가 전체 사용자에게 발생하는지 특정 부서나 VLAN에서만 발생하는지 확인한다.
+1\. 장애가 전체 사용자에게 발생하는지 특정 부서나 VLAN에서만 발생하는지 확인한다.
 
-3\. 단말의 IP Address, Subnet Mask 및 Default Gateway가 VLSM 설계와 일치하는지 확인한다.
-- DHCP 정보가 잘못되었다면 DHCP Scope를 확인하고 IP Address를 다시 할당받는다.
+2\. 단말의 Static IP를 사용하는 경우 IP Address, Subnet Mask 및 Default Gateway가 변경된 VLSM 설계에 맞게 설정되어 있는지 확인한다.
 ```
 PC1> ipconfig /all
+```
+
+3\. 단말이 DHCP를 사용하는 경우 DHCP Scope에 설정된 Network, Subnet Mask 및 Default Gateway 정보가 올바른지 확인한다.
+- DHCP 정보가 잘못되었다면 DHCP Scope를 수정한 후 IP Address를 다시 할당받는다.
+```
 PC1> ipconfig /release
 PC1> ipconfig /renew
 ```
 
-4\. 백본 스위치에서 SVI의 IP Address, Subnet Mask 및 동작 상태를 확인한다.
+4\. 백본 스위치에서 해당 VLAN의 SVI IP Address, Subnet Mask 및 인터페이스 상태를 확인한다.
 ```
 DSW1# show ip interface brief
-DSW1# show running-config interface vlan <VLAN ID>
+DSW1# show run int vlan <VLAN ID>
 ```
 
-5\. 단말이 연결된 인터페이스의 Access VLAN과 Trunk의 Allowed VLAN을 확인한다.
+7\. 단말이 연결된 인터페이스의 Access VLAN과 Switch 간 Trunk의 Allowed VLAN을 확인한다.
 ```
-SW1# show vlan brief
+SW1# show vlan
 SW1# show interfaces trunk
 ```
 
-6\. 단말에서 Default Gateway로 Ping을 전송한다.
-- Ping이 실패하면 단말 설정, Access VLAN, Trunk, ACL 및 SVI를 확인한다.
+8\. 단말에서 Default Gateway로 Ping을 전송하여 같은 Subnet 내부의 통신이 정상적인지 확인한다.
 ```
 PC1> ping <Default Gateway>
 ```
+- Ping이 실패하면 단말의 IP 설정, Access VLAN, Trunk 및 SVI 설정을 확인한다.
 
-7\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table, ACL 및 Return Path를 확인한다.
+8\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table에 목적지 Network의 Route가 존재하는지 확인한다.
 ```
 DSW1# show ip route <Destination IP>
+```
+
+9\. Route가 존재하지만 통신하지 못한다면 ACL과 Return Path를 확인한다.
+```
 DSW1# show access-lists
+DSW1# show ip route <Source Network>
 ```
 
 ### CIDR Route Summarization 후 Upstream Router가 Summary Route를 받지 못하는 경우
 
-1\. Branch Router(R1)와 Upstream Router(R2) 사이의 인터페이스 및 IP 통신 상태를 확인한다.
+1\. Summary할 하위 Network들이 Router의 Routing Table에 정상적으로 존재하는지 확인한다.
 ```
-R1# show ip interface brief
-R1# ping <Upstream Router IP>
-```
-
-2\. 두 라우터 사이에 OSPF Neighbor가 `FULL` 상태로 형성되었는지 확인한다.
-```
-R1# show ip ospf neighbor
+R1# show ip route
 ```
 
-3\. Branch Router에서 Summary Route가 올바른 OSPF Process와 Area에 설정되었는지 확인한다.
+2\. Summary할 Network들의 주소 범위를 확인하고 Summary Network와 Prefix Length가 올바르게 계산되었는지 확인한다.
 ```
-R1# show running-config | section router ospf
+192.168.20.0/24
+192.168.21.0/24
+192.168.22.0/24
+192.168.23.0/24
+
+Summary Route: 192.168.20.0/22
 ```
 
-4\. Branch Router가 `192.168.20.0/22` Summary LSA를 생성했는지 확인한다.
+3\. 사용하는 Routing Protocol에 Summary Route가 올바르게 설정되어 있는지 확인한다.
 ```
-R1# show ip ospf database summary 192.168.20.0
-```
-
-5\. OSPF Area Filter-List나 Prefix-List에서 Summary Route를 차단하고 있지 않은지 확인한다.
-```
-R1# show ip prefix-list
-R1# show running-config | include filter-list
+R1# show running-config
+R1# show ip protocols
 ```
 
-6\. Upstream Router의 OSPF Database에 Summary LSA가 수신되었는지 확인한다.
-```
-R2# show ip ospf database summary 192.168.20.0
-```
+4\. Summary Route를 광고하는 Router와 Upstream Router 사이의 인터페이스 및 IP 통신 상태를 확인한다.
+
+5\. 사용하는 Routing Protocol이 정상적으로 동작하고 있는 상태인지 확인한다.
+
+6\. Prefix-List, Route-Map 또는 Route Filtering 설정에서 Summary Route가 차단되고 있지 않은지 확인한다.
+
+7\. Upstream Router의 Routing Table에 Summary Route가 수신되었는지 확인한다.
 
 ---
 
