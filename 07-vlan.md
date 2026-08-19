@@ -18,22 +18,19 @@ Access Port는 단말로부터 Untagged Frame을 수신하면 해당 인터페�
 
 ### Trunk Port
 
-Trunk Port는 하나의 Link를 통해 여러 VLAN Traffic을 전달하는 인터페이스이다. Switch 간 연결이나 Switch와 Router, Firewall 및 Wireless AP를 연결할 때 주로 사용한다.
+Trunk Port는 하나의 Link를 통해 여러 VLAN Traffic을 전달하는 인터페이스이다. Trunk Port는 주로 Switch 간 연결이나 하나의 Link를 통해 여러 VLAN의 Traffic을 전달해야 하는 장비와의 연결에 사용한다. 
 
-Trunk Link에서는 IEEE 802.1Q Tag를 Ethernet Frame에 추가하여 Frame이 어느 VLAN에 속하는지 구분한다.
+Trunk Port는 Tagged Port라고도 불린다. Access Port와 달리 IEEE 802.1Q 표준을 사용하여 Frame에 VLAN ID를 식별하기 위한 VLAN Tag를 추가한다. 단, Native VLAN의 Frame은 기본적으로 Untagged 상태로 전송된다.  
 
 Trunk의 Allowed VLAN에 포함된 VLAN만 해당 Link를 통과할 수 있다.
 
 ### Native VLAN
 
-Native VLAN은 802.1Q Trunk Link에서 VLAN Tag가 없는 Untagged Frame을 처리하기 위해 사용하는 VLAN이다.
+Native VLAN은 Trunk Link에서 VLAN Tag 없이 Untagged Frame으로 전송되는 VLAN이다.
 
-Cisco Switch의 기본 Native VLAN은 VLAN `1`이며 다른 VLAN으로 변경할 수 있다. 일반적으로 Native VLAN에 속한 Frame은 Trunk Link를 통과할 때 VLAN Tag가 추가되지 않는다.
+Cisco Switch의 기본 Native VLAN은 VLAN 1이며, 다른 VLAN으로 변경할 수 있다.
 
-Trunk Link 양쪽 Switch의 Native VLAN은 동일하게 설정해야 한다. Native VLAN이 다르면 Untagged Frame이 서로 다른 VLAN으로 처리되어 통신 장애가 발생할 수 있다.
-
-- Access VLAN: Access Port에 연결된 단말이 속하는 VLAN
-- Native VLAN: Trunk Port에서 Untagged Frame을 처리하는 VLAN
+Trunk Link 양쪽 장비의 Native VLAN은 동일하게 설정해야 한다. Trunk Port로 Untagged Frame이 들어오면 Switch는 해당 Frame을 자신의 Native VLAN Traffic으로 판단하기 때문에, 양쪽 Switch의 Native VLAN이 다르면 같은 Frame을 서로 다른 VLAN Traffic으로 처리하여 통신 장애가 발생할 수 있다. 
 
 ---
 
