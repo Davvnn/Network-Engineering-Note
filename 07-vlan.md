@@ -173,64 +173,54 @@ Trunk Port의 동작 상태, Native VLAN 및 Allowed VLAN을 보여준다.
 
 ## Troubleshooting
 
-### VLAN 구성 후 같은 VLAN 사용자 간 통신이 안 되는 경우
+### VLAN 구성 후 사용자 통신이 안 되는 경우
 
-1\. 장애가 하나의 단말에서만 발생하는지 같은 VLAN의 전체 사용자에게 발생하는지 확인한다.
+1\. 백본 스위치에 접속하여 통신이 안 되는 단말의 IP Address를 ARP Table에서 확인한다.
+```
+DSW1# show ip arp | include <IP Address>
+```
 
-2\. 단말이 연결된 Switch 인터페이스의 동작 상태를 확인한다.
-
+2\. ARP Table에서 해당 IP Address의 MAC Address가 확인되지 않으면 단말이 연결된 Switch 인터페이스의 동작 상태를 확인한다.
 ```
 SW1# show interfaces status
 ```
 
-3\. 단말이 연결된 인터페이스가 올바른 Access VLAN에 할당되었는지 확인한다.
-
+3\. 단말이 연결된 인터페이스가 올바른 Access VLAN에 할당되어 있는지 확인한다.
 ```
 SW1# show vlan brief
 SW1# show interfaces <Interface ID> switchport
 ```
 
 4\. 해당 VLAN이 연결 경로에 있는 모든 Switch의 VLAN Database에 생성되어 있는지 확인한다.
-
 ```
-SW1# show vlan brief
+SW1# show vlan
+SW2# show vlan
 ```
 
-5\. Switch 사이의 인터페이스가 Trunk 상태이며 해당 VLAN이 Allowed VLAN에 포함되어 있는지 확인한다.
-
+5\. Switch 간 인터페이스가 Trunk 상태이고 해당 VLAN이 Allowed VLAN에 포함되어 있는지 확인한다.
 ```
 SW1# show interfaces trunk
+SW2# show interfaces trunk
 ```
 
 6\. Trunk Link 양쪽의 Native VLAN이 동일하게 설정되어 있는지 확인한다.
 - Native VLAN이 다르면 양쪽 Switch의 Native VLAN을 동일하게 변경한다.
 
-7\. Switch의 MAC Address Table에 단말의 MAC Address가 올바른 VLAN과 인터페이스로 학습되어 있는지 확인한다.
-
-```
-SW1# show mac address-table vlan <VLAN ID>
-```
-
-8\. 단말의 IP Address와 Subnet Mask가 같은 VLAN의 Network 설계와 일치하는지 확인한다.
-
-```
-PC1> ipconfig
-```
-
-9\. 서로 다른 VLAN 간 통신만 실패한다면 SVI, Inter-VLAN Routing, ACL 및 Default Gateway를 확인한다.
+7\. 같은 VLAN 간 통신은 가능하지만 서로 다른 VLAN 간 통신만 실패한다면 SVI, Inter-VLAN Routing, ACL 및 Default Gateway를 확인한다.
+- 단말의 Default Gateway가 해당 VLAN의 SVI IP Address로 설정되어 있는지 확인한다.
 
 ---
 
 ## 실무 질문
 
 VLAN은 무엇인가?
-- 하나의 물리적인 Switch Network를 여러 개의 논리적인 Broadcast Domain으로 분리하는 방식이다.
+- 하나의 물리적인 Switch를 논리적으로 여러 개의 스위치로 분리하는 방식이다.
 
 VLAN을 사용하는 이유는 무엇인가?
 - 부서나 서비스별로 Broadcast Domain을 분리하고 Network를 체계적으로 관리하기 위해 사용한다.
 
 Access Port는 무엇인가?
-- 하나의 VLAN Traffic을 전달하며 일반적으로 PC, Server 및 Printer와 같은 단말을 연결하는 인터페이스이다.
+- PC, Server 및 Printer와 같은 단말을 연결하는 인터페이스이다.
 
 Trunk Port는 무엇인가?
 - 하나의 Link를 통해 여러 VLAN Traffic을 전달하는 인터페이스이다.
@@ -241,14 +231,8 @@ Trunk Port는 무엇인가?
 Native VLAN은 무엇인가?
 - 802.1Q Trunk Link에서 VLAN Tag가 없는 Untagged Frame을 처리하는 VLAN이다.
 
-Access VLAN과 Native VLAN의 차이는 무엇인가?
-- Access VLAN은 Access Port에 연결된 단말이 속하는 VLAN이고, Native VLAN은 Trunk Port에서 Untagged Frame을 처리하는 VLAN이다.
-
 Native VLAN이 Trunk Link 양쪽에서 다르면 어떤 문제가 발생하는가?
 - Untagged Frame이 서로 다른 VLAN Traffic으로 처리되어 통신 장애가 발생할 수 있다.
-
-Trunk의 Allowed VLAN에 특정 VLAN이 포함되지 않으면 어떻게 되는가?
-- 해당 VLAN의 Frame이 Trunk Link를 통과하지 못하므로 다른 Switch에 있는 같은 VLAN 사용자와 통신할 수 없다.
 
 서로 다른 VLAN에 속한 장비가 통신하려면 무엇이 필요한가?
 - Router나 Layer 3 Switch를 통한 Inter-VLAN Routing이 필요하다.
