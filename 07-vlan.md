@@ -69,9 +69,7 @@ Trunk Link 양쪽 장비의 Native VLAN은 동일하게 설정해야 한다. Tru
 
 ## 예시 및 구성도
 
-### 시나리오 1
-
-회사는 영업부와 개발부의 Broadcast Domain을 분리하기 위해 다음과 같이 VLAN을 구성한다.
+회사에서 영업부와 개발부의 네트워크를 논리적으로 구분하기 위해 다음과 같이 VLAN을 구성한다.
 
 PC1
 - IP Address: `192.168.10.10/24`
@@ -93,20 +91,27 @@ PC4
 - VLAN: `20`
 - 연결 인터페이스: SW2 `Gi0/2`
 
-SW1과 SW2
+SW1 & SW2
 - Trunk 인터페이스: `Gi0/24`
 - Allowed VLAN: `10,20,99`
 - Native VLAN: `99`
 
-1\. PC1이 PC2에게 Frame을 전송하면 SW1은 Frame을 VLAN `10` Traffic으로 처리한다.
+1\. PC1은 PC2의 MAC Address를 Destination MAC Address로 지정한 Ethernet Frame을 생성하고, 연결된 인터페이스를 통해 SW1의 `Gi0/1`로 전송한다.
 
-2\. SW1은 Trunk Link로 Frame을 전송하면서 VLAN `10` Tag를 추가한다.
+2\. SW1은 `Gi0/1`에 설정된 Access VLAN을 확인하고 해당 Frame을 VLAN `10` Traffic으로 처리한다.
 
-3\. SW2는 VLAN Tag를 확인하고 Frame을 PC2가 연결된 VLAN `10` Access Port로 전달한다.
+3\. SW1은 MAC Address Table을 확인하고 PC2의 MAC Address가 SW2 방향의 Trunk Port에 매핑되어 있는 것을 확인한다.
 
-4\. PC3과 PC4의 VLAN `20` Traffic도 동일한 Trunk Link를 사용하지만 VLAN Tag를 통해 VLAN `10` Traffic과 구분된다.
+4\. SW1은 Frame에 VLAN ID `10`이 포함된 802.1Q Tag를 추가하여 SW2와 연결된 Trunk Port로 전송한다.
 
-5\. PC1과 PC3은 서로 다른 VLAN에 속하므로 Layer 2 통신만으로는 서로 통신할 수 없다.
+5\. SW2는 VLAN Tag를 확인하고 해당 Frame을 VLAN `10` Traffic으로 처리한다.
+
+6\. SW2는 MAC Address Table을 확인하고 PC2가 연결된 VLAN `10` Access Port로 Frame을 전달한다.
+- Access Port로 전송하기 전에 VLAN Tag를 제거한다.
+
+7\. PC2는 VLAN Tag가 없는 Ethernet Frame을 수신한다.
+
+8\. PC1과 PC3은 서로 다른 VLAN에 속하므로 Layer 2 통신만으로는 통신할 수 없다.
 - 서로 다른 VLAN 간 통신에는 Inter-VLAN Routing이 필요하다.
 
 Comment:
