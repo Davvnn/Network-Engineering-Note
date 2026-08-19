@@ -4,11 +4,11 @@
 
 ### VLAN
 
-VLAN(Virtual Local Area Network)은 하나의 물리적인 Switch Network를 여러 개의 논리적인 Network로 분리하는 방식이다.
+VLAN(Virtual Local Area Network)은 하나의 물리적인 LAN을 여러 개의 논리적인 LAN으로 분리하는 방식이다.
 
-각 VLAN은 서로 다른 Broadcast Domain으로 동작하므로 Broadcast Traffic은 같은 VLAN에 속한 인터페이스로만 전달된다. 일반적으로 하나의 VLAN에는 하나의 IP Subnet을 할당한다.
+각 VLAN은 서로 다른 Broadcast Domain으로 동작하므로 Broadcast Traffic은 같은 VLAN에 속한 인터페이스로만 전달된다. 일반적으로 하나의 VLAN에는 하나의 IP Subnet을 할당하며, Layer 3 Switch에서는 해당 VLAN의 Default Gateway 역할을 하는 SVI를 구성할 수 있다.
 
-같은 VLAN에 속한 장비는 서로 다른 스위치에 연결되어 있어도 Trunk Link를 통해 Layer 2 통신을 할 수 있다. 하지만 서로 다른 VLAN에 속한 장비가 통신하려면 Router나 Layer 3 Switch를 통한 Inter-VLAN Routing이 필요하다.
+같은 VLAN의 Traffic은 Trunk Link를 통해 다른 Switch로 전달될 수 있다. 하지만 서로 다른 VLAN에 속한 장비가 통신하려면 Layer 3 장비를 통한 Inter-VLAN Routing이 필요하다.
 
 ### Access Port
 
