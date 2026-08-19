@@ -43,13 +43,13 @@ Trunk Link 양쪽 장비의 Native VLAN은 동일하게 설정해야 한다. Tru
 2\. SW1은 Frame이 들어온 인터페이스의 Access VLAN을 확인한다.
 - SW1의 `Gi0/1`이 VLAN `10`으로 설정되어 있다면 Frame을 VLAN `10` Traffic으로 처리한다.
 
-3\. SW1은 Source MAC Address를 VLAN `10`의 MAC Address Table에 학습한다.
+3\. SW1은 Source MAC Address를 Frame이 들어온 인터페이스와 매핑하여 VLAN `10`의 MAC Address Table에 학습한다.
 
-4\. Destination MAC Address가 다른 Switch 방향에 있다면 SW1은 Frame에 VLAN `10`을 나타내는 802.1Q Tag를 추가하여 Trunk Port로 전송한다.
+4\. Destination MAC Address가 다른 Switch에 연결되어 있다면 SW1은 해당 Frame에 VLAN ID `10`이 포함된 802.1Q Tag를 붙여서 Trunk Port로 전송한다.
 
-5\. SW2는 802.1Q Tag를 확인하여 Frame이 VLAN `10`에 속한다는 것을 확인한다.
+5\. SW2는 802.1Q Tag를 확인하고 해당 Frame이 VLAN `10`에 속한다는 것을 확인한다.
 
-6\. SW2는 VLAN `10`의 MAC Address Table을 확인하고 PC2가 연결된 Access Port로 Frame을 전달한다.
+6\. SW2는 VLAN `10`의 MAC Address Table을 확인하고 Destination MAC Address가 매핑된 Access Port로 Frame을 전달한다.
 
 7\. SW2는 Access Port로 Frame을 전송하기 전에 VLAN Tag를 제거한다.
 
@@ -61,7 +61,7 @@ Trunk Link 양쪽 장비의 Native VLAN은 동일하게 설정해야 한다. Tru
 
 2\. Switch는 Untagged Frame을 해당 Trunk Port에 설정된 Native VLAN Traffic으로 처리한다.
 
-3\. Native VLAN에 속한 Frame은 기본적으로 VLAN Tag 없이 Trunk Link로 전송된다.
+3\. Native VLAN에 속한 Frame은 Untagged 형식으로 Trunk Link로 전송된다.
 
 4\. Trunk 양쪽의 Native VLAN이 다르면 동일한 Untagged Frame을 서로 다른 VLAN Traffic으로 처리할 수 있다.
 
