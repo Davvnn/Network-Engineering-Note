@@ -214,7 +214,7 @@ SW2# show interfaces trunk
 ## 실무 질문
 
 VLAN은 무엇인가?
-- 하나의 물리적인 Switch를 논리적으로 여러 개의 스위치로 분리하는 방식이다.
+- VLAN은 하나의 물리적인 Switch를 논리적으로 여러 대의 Switch처럼 나누어, 하나의 물리적인 LAN을 여러 개의 논리적인 LAN으로 분리하는 방식이다.
 
 VLAN을 사용하는 이유는 무엇인가?
 - 부서나 서비스별로 Broadcast Domain을 분리하고 Network를 체계적으로 관리하기 위해 사용한다.
