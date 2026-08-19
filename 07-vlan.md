@@ -86,11 +86,6 @@ PC3
 - VLAN: `20`
 - 연결 인터페이스: SW1 `Gi0/2`
 
-PC4
-- IP Address: `192.168.20.20/24`
-- VLAN: `20`
-- 연결 인터페이스: SW2 `Gi0/2`
-
 SW1 & SW2
 - Trunk 인터페이스: `Gi0/24`
 - Allowed VLAN: `10,20,99`
