@@ -225,12 +225,12 @@ DSW1# show ip route <Source Network>
 
 ### CIDR Route Summarization 후 Upstream Router가 Summary Route를 받지 못하는 경우
 
-1\. Summary할 하위 Network들이 Router의 Routing Table에 정상적으로 존재하는지 확인한다.
+1\. Summary하려는 하위 Network들이 Router의 Routing Table에 정상적으로 존재하는지 확인한다.
 ```
 R1# show ip route
 ```
 
-2\. Summary할 Network들의 주소 범위를 확인하고 Summary Network와 Prefix Length가 올바르게 계산되었는지 확인한다.
+2\. Summary하려는 Network들의 주소 범위를 확인하고 Summary Network와 Prefix Length가 올바르게 계산되었는지 확인한다.
 ```
 192.168.20.0/24
 192.168.21.0/24
