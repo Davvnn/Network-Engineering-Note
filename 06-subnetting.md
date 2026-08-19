@@ -104,6 +104,8 @@ Summary Route: `192.168.0.0/22`
 ### 시나리오 1
 회사가 새로운 사옥의 내부 네트워크를 구축하면서 `192.168.10.0/24` 대역을 추가하기로 했다. 네트워크 담당자는 영업부, 개발부, 관리부에 필요한 Host 수에 맞게 IP Address를 할당해야 한다. 
 
+![](images/06-subnetting-vlsm.png)
+
 `192.168.10.0/24` Network를 다음 요구 사항에 맞게 VLSM으로 나눈다.
 - Sales: Host `100대`
 - Development: Host `50대`
@@ -135,6 +137,8 @@ IP Address 대역을 나누면 네트워크 관리자가 주소를 부서별로 
 
 ### 시나리오 2
 회사는 여러 지점에서 사용하는 네트워크를 본사 라우터에서 관리하고 있다. 네트워크 담당자는 Routing Table을 단순화하기 위해 여러 개의 연속된 Network를 하나의 Summary Route로 묶는 작업을 하려고 한다.  
+
+![](images/06-subnetting-cidr.png)
 
 다음 Network를 CIDR을 사용하여 하나의 Network로 요약한다.
 - `192.168.20.0/24`
@@ -172,23 +176,65 @@ Comment:
 
 ## 명령어
 
-```
-DSW1# show ip arp
-```
-
-L3 장비가 학습한 IP Address와 MAC Address의 매핑 정보를 확인한다.
+### VLSM 
 
 ```
-DSW1# show ip arp | include 192.168.1.20
+DSW1(config)# interface vlan 10
+DSW1(config-if)# ip address 192.168.10.1 255.255.255.128
 ```
-
-특정 IP Address가 포함된 ARP 정보를 확인한다.
+Sales Network의 Gateway와 `/25` Subnet Mask를 설정한다.
 
 ```
-PC1> arp -a
+DSW1(config)# interface vlan 20
+DSW1(config-if)# ip address 192.168.10.129 255.255.255.192
 ```
+Development Network의 Gateway와 `/26` Subnet Mask를 설정한다.
 
-Windows PC의 ARP Table을 확인한다.
+```
+DSW1(config)# interface vlan 30
+DSW1(config-if)# ip address 192.168.10.193 255.255.255.224
+```
+Management Network의 Gateway와 `/27` Subnet Mask를 설정한다.
+
+```
+DSW1(config)# ip dhcp pool SALES
+DSW1(dhcp-config)# network 192.168.10.0 255.255.255.128
+DSW1(dhcp-config)# default-router 192.168.10.1
+```
+VLSM으로 나눈 Subnet에 맞게 DHCP Pool을 설정한다.
+
+```
+DSW1# show running-config interface vlan <VLAN ID>
+```
+SVI에 설정된 IP Address와 Subnet Mask를 확인한다.
+
+```
+DSW1# show ip interface vlan <VLAN ID>
+```
+특정 SVI의 IP Address, Prefix Length 및 동작 상태를 확인한다.
+
+```
+DSW1# show ip route connected
+```
+VLSM으로 나눈 Subnet이 Directly Connected Route로 등록되었는지 확인한다.
+
+```
+DSW1# show ip dhcp pool
+```
+DHCP Pool에 설정된 Network와 Subnet Mask를 확인한다.
+
+### CIDR 
+
+```
+R2(config)# ip route 192.168.20.0 255.255.252.0 <Branch Router IP>
+```
+Upstream Router에서 `192.168.20.0/22` Summary Route의 Next-Hop을 Branch Router로 지정하여 Static Route로 설정한다.
+
+```
+R1(config)# router ospf 1
+R1(config-router)# area 10 range 192.168.20.0 255.255.252.0
+```
+OSPF 환경에서는 ABR 역할을 하는 Branch Router가 Area `10`의 연속된 Route를 `192.168.20.0/22`로 요약하여 다른 OSPF Area에 광고하도록 설정한다.
 
 ---
 
@@ -224,35 +270,38 @@ SW1# show interfaces trunk
 
 6\. 단말에서 Default Gateway로 Ping을 전송한다.
 - Ping이 실패하면 단말 설정, Access VLAN, Trunk, ACL 및 SVI를 확인한다.
-
-`PC1> ping <Default Gateway>`
+```
+PC1> ping <Default Gateway>
+```
 
 7\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table, ACL 및 Return Path를 확인한다.
 ```
 DSW1# show ip route <Destination IP>
 DSW1# show access-lists
 ```
-### CIDR Route Summarization 후 Upstream Router가 Summary Route를 받지 못하는 경우
-- R1: Branch Router 
-- R2: Upstream Router
 
-1\. Branch Router와 Upstream Router 사이의 인터페이스 및 IP 통신 상태를 확인한다.
+### CIDR Route Summarization 후 Upstream Router가 Summary Route를 받지 못하는 경우
+
+1\. Branch Router(R1)와 Upstream Router(R2) 사이의 인터페이스 및 IP 통신 상태를 확인한다.
 ```
 R1# show ip interface brief
 R1# ping <Upstream Router IP>
 ```
 
 2\. 두 라우터 사이에 OSPF Neighbor가 `FULL` 상태로 형성되었는지 확인한다.
-
-`R1# show ip ospf neighbor`
+```
+R1# show ip ospf neighbor
+```
 
 3\. Branch Router에서 Summary Route가 올바른 OSPF Process와 Area에 설정되었는지 확인한다.
-
-`R1# show running-config | section router ospf`
+```
+R1# show running-config | section router ospf
+```
 
 4\. Branch Router가 `192.168.20.0/22` Summary LSA를 생성했는지 확인한다.
-
-`R1# show ip ospf database summary 192.168.20.0`
+```
+R1# show ip ospf database summary 192.168.20.0
+```
 
 5\. OSPF Area Filter-List나 Prefix-List에서 Summary Route를 차단하고 있지 않은지 확인한다.
 ```
@@ -261,8 +310,9 @@ R1# show running-config | include filter-list
 ```
 
 6\. Upstream Router의 OSPF Database에 Summary LSA가 수신되었는지 확인한다.
-
-`R2# show ip ospf database summary 192.168.20.0`
+```
+R2# show ip ospf database summary 192.168.20.0
+```
 
 ---
 
@@ -274,23 +324,14 @@ Subnetting은 무엇인가?
 Subnetting을 사용하는 이유는 무엇인가?
 - 부서나 서비스별로 Network를 구분하고 IP Address를 효율적으로 사용하기 위해서이다.
 
-Subnet Mask는 어떤 역할을 하는가?
-- IP Address에서 Network 영역과 Host 영역을 구분한다.
-
 Network Address와 Broadcast Address의 차이는 무엇인가?
 - Network Address는 Subnet 자체를 나타내고, Broadcast Address는 해당 Subnet의 모든 장비로 전송할 때 사용한다.
-
-`/26`에서 사용할 수 있는 Host 수는 몇 개인가?
-- 전체 주소는 `64개`이며, Network Address와 Broadcast Address를 제외한 `62개`를 사용할 수 있다.
 
 VLSM은 무엇인가?
 - 필요한 Host 수에 따라 서로 다른 Prefix Length를 사용하여 Subnet을 나누는 방식이다.
 
-VLSM을 적용할 때 큰 Network부터 할당하는 이유는 무엇인가?
-- 큰 Network에 필요한 연속된 주소 공간을 먼저 확보하고 주소 범위의 중복을 방지하기 위해서이다.
-
 CIDR은 무엇인가?
-- Class 구분 없이 Prefix Length를 사용하여 Network의 크기를 표현하는 방식이다.
+- 여러 개의 연속된 Network를 하나의 Summary Route로 묶는 방식이다.
 
 Route Summarization을 사용하는 이유는 무엇인가?
 - 여러 개의 연속된 Network를 하나의 Route로 묶어 Routing Table을 단순하게 관리하기 위해서이다.
