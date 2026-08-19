@@ -204,20 +204,23 @@ Windows PC의 ARP Table을 확인한다.
 
 3\. 단말의 IP Address, Subnet Mask 및 Default Gateway가 VLSM 설계와 일치하는지 확인한다.
 - DHCP 정보가 잘못되었다면 DHCP Scope를 확인하고 IP Address를 다시 할당받는다.
-
-`PC1> ipconfig /all`
-`PC1> ipconfig /release`
-`PC1> ipconfig /renew`
+```
+PC1> ipconfig /all
+PC1> ipconfig /release
+PC1> ipconfig /renew
+```
 
 4\. 백본 스위에서 SVI의 IP Address, Subnet Mask 및 동작 상태를 확인한다.
-
-`DSW1# show ip interface brief`
-`DSW1# show running-config interface vlan <VLAN ID>`
+```
+DSW1# show ip interface brief
+DSW1# show running-config interface vlan <VLAN ID>
+```
 
 5\. 단말이 연결된 인터페이스의 Access VLAN과 Trunk의 Allowed VLAN을 확인한다.
-
-`SW1# show vlan brief`
-`SW1# show interfaces trunk`
+```
+SW1# show vlan brief
+SW1# show interfaces trunk
+```
 
 6\. 단말에서 Default Gateway로 Ping을 전송한다.
 - Ping이 실패하면 단말 설정, Access VLAN, Trunk, ACL 및 SVI를 확인한다.
@@ -225,18 +228,19 @@ Windows PC의 ARP Table을 확인한다.
 `PC1> ping <Default Gateway>`
 
 7\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table, ACL 및 Return Path를 확인한다.
-
-`DSW1# show ip route <Destination IP>`
-`DSW1# show access-lists`
-
+```
+DSW1# show ip route <Destination IP>
+DSW1# show access-lists
+```
 ### CIDR Route Summarization 후 Upstream Router가 Summary Route를 받지 못하는 경우
 - R1: Branch Router 
 - R2: Upstream Router
 
 1\. Branch Router와 Upstream Router 사이의 인터페이스 및 IP 통신 상태를 확인한다.
-
-`R1# show ip interface brief`
-`R1# ping <Upstream Router IP>`
+```
+R1# show ip interface brief
+R1# ping <Upstream Router IP>
+```
 
 2\. 두 라우터 사이에 OSPF Neighbor가 `FULL` 상태로 형성되었는지 확인한다.
 
@@ -251,9 +255,10 @@ Windows PC의 ARP Table을 확인한다.
 `R1# show ip ospf database summary 192.168.20.0`
 
 5\. OSPF Area Filter-List나 Prefix-List에서 Summary Route를 차단하고 있지 않은지 확인한다.
-
-`R1# show ip prefix-list`
-`R1# show running-config | include filter-list`
+```
+R1# show ip prefix-list
+R1# show running-config | include filter-list
+```
 
 6\. Upstream Router의 OSPF Database에 Summary LSA가 수신되었는지 확인한다.
 
