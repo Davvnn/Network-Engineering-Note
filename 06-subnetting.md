@@ -54,7 +54,6 @@ VLSM(Variable Length Subnet Mask)은 하나의 Network를 필요한 Host 수에 
 ### CIDR
 
 CIDR(Classless Inter-Domain Routing)은 Class A, B, C와 같은 고정된 Class를 사용하지 않고, Prefix Length로 Network 범위를 지정하거나 여러 개의 연속된 Network를 하나의 Summary Route로 요약하는 방식이다.  
-- CIDR은 여러 개의 연속된 IP Address 대역을 하나의 Summary Route로 묶는 것
 
 다음 네 개의 연속된 Network를 하나의 Summary Route로 묶는다.
 - `192.168.0.0/24`
