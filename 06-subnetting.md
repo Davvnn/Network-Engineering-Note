@@ -101,15 +101,15 @@ Summary Route: `192.168.0.0/22`
 
 ## 예시 및 구성도
 
-`192.168.10.0/24` Network를 다음 요구 사항에 맞게 VLSM으로 나눈다.
+### 시나리오 1
+회사가 새로운 사옥의 내부 네트워크를 구축하면서 `192.168.10.0/24` 대역을 추가하기로 했다. 네트워크 담당자는 영업부, 개발부, 관리부에 필요한 Host 수에 맞게 IP Address를 할당해야 한다. 
 
+`192.168.10.0/24` Network를 다음 요구 사항에 맞게 VLSM으로 나눈다.
 - Sales: Host `100대`
 - Development: Host `50대`
 - Management: Host `20대`
-- R1-R2 Link: Host `2대`
 
 1\. Host 수가 가장 많은 Sales Network에 `/25`를 할당한다.
-
 ```
 Network: 192.168.10.0/25
 Usable Host: 192.168.10.1~192.168.10.126
@@ -117,7 +117,6 @@ Broadcast: 192.168.10.127
 ```
 
 2\. Development Network에 `/26`을 할당한다.
-
 ```
 Network: 192.168.10.128/26
 Usable Host: 192.168.10.129~192.168.10.190
@@ -125,23 +124,11 @@ Broadcast: 192.168.10.191
 ```
 
 3\. Management Network에 `/27`을 할당한다.
-
 ```
 Network: 192.168.10.192/27
 Usable Host: 192.168.10.193~192.168.10.222
 Broadcast: 192.168.10.223
 ```
-
-4\. R1-R2 Point-to-Point Link에 `/30`을 할당한다.
-
-```
-Network: 192.168.10.224/30
-R1: 192.168.10.225
-R2: 192.168.10.226
-Broadcast: 192.168.10.227
-```
-
-5\. 필요한 Host 수에 따라 서로 다른 Prefix Length를 사용하므로 IP Address의 낭비를 줄일 수 있다.
 
 ---
 
