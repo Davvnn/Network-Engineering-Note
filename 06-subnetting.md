@@ -170,25 +170,94 @@ Comment:
 
 ---
 
+## 명령어
+
+```
+DSW1# show ip arp
+```
+
+L3 장비가 학습한 IP Address와 MAC Address의 매핑 정보를 확인한다.
+
+```
+DSW1# show ip arp | include 192.168.1.20
+```
+
+특정 IP Address가 포함된 ARP 정보를 확인한다.
+
+```
+PC1> arp -a
+```
+
+Windows PC의 ARP Table을 확인한다.
+
+---
+
 ## Troubleshooting
 
-1\. 단말의 IP Address, Subnet Mask 및 Default Gateway 설정이 올바른지 확인한다.
+### VLSM 적용 후 다음 날 사용자들이 통신이 안 되는 경우
 
-2\. 단말의 IP Address가 해당 Subnet의 Usable Host 범위에 포함되는지 확인한다.
+1\. 작업 전에 해당 네트워크 대역을 사용하고 있는 사용자들에게 작업 일정과 예상되는 네트워크 중단 시간을 안내한다.
+- DHCP 사용자는은 따로 네트워크 설정을 직접 변경할 필요가 없다.
+- 하지만 Static IP를 사용하는 장비의 담당자에게는 변경할 IP Address, Subnet Mask 및 Default Gateway 정보를 전달한다.
 
-3\. Network Address나 Broadcast Address가 단말에 할당되지 않았는지 확인한다.
+2\. 장애가 전체 사용자에게 발생하는지 특정 부서나 VLAN에서만 발생하는지 확인한다.
 
-4\. 단말과 Default Gateway에 서로 다른 Subnet Mask가 설정되지 않았는지 확인한다.
-- Subnet Mask가 잘못 설정되면 목적지를 같은 Network 또는 다른 Network로 잘못 판단할 수 있다.
+3\. 단말의 IP Address, Subnet Mask 및 Default Gateway가 VLSM 설계와 일치하는지 확인한다.
+- DHCP 정보가 잘못되었다면 DHCP Scope를 확인하고 IP Address를 다시 할당받는다.
 
-5\. 여러 Subnet의 주소 범위가 서로 겹치지 않는지 확인한다.
+`PC1> ipconfig /all`
+`PC1> ipconfig /release`
+`PC1> ipconfig /renew`
 
-6\. Default Gateway의 IP Address가 단말과 같은 Subnet에 포함되는지 확인한다.
+4\. 백본 스위에서 SVI의 IP Address, Subnet Mask 및 동작 상태를 확인한다.
 
-7\. 다른 Subnet과 통신할 수 없다면 Routing Table에 목적지로 가는 Route와 출발지로 돌아오는 Return Path가 있는지 확인한다.
+`DSW1# show ip interface brief`
+`DSW1# show running-config interface vlan <VLAN ID>`
 
-8\. Summary Route를 사용하는 경우 실제로 존재하지 않는 Network까지 Summary 범위에 포함되지 않았는지 확인한다.
-- 잘못된 Summary Route는 Packet이 잘못된 경로로 전달되어 폐기되는 Routing Black Hole을 발생시킬 수 있다.
+5\. 단말이 연결된 인터페이스의 Access VLAN과 Trunk의 Allowed VLAN을 확인한다.
+
+`SW1# show vlan brief`
+`SW1# show interfaces trunk`
+
+6\. 단말에서 Default Gateway로 Ping을 전송한다.
+- Ping이 실패하면 단말 설정, Access VLAN, Trunk, ACL 및 SVI를 확인한다.
+
+`PC1> ping <Default Gateway>`
+
+7\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table, ACL 및 Return Path를 확인한다.
+
+`DSW1# show ip route <Destination IP>`
+`DSW1# show access-lists`
+
+### CIDR Route Summarization 후 Upstream Router가 Summary Route를 받지 못하는 경우
+- R1: Branch Router 
+- R2: Upstream Router
+
+1\. Branch Router와 Upstream Router 사이의 인터페이스 및 IP 통신 상태를 확인한다.
+
+`R1# show ip interface brief`
+`R1# ping <Upstream Router IP>`
+
+2\. 두 라우터 사이에 OSPF Neighbor가 `FULL` 상태로 형성되었는지 확인한다.
+
+`R1# show ip ospf neighbor`
+
+3\. Branch Router에서 Summary Route가 올바른 OSPF Process와 Area에 설정되었는지 확인한다.
+
+`R1# show running-config | section router ospf`
+
+4\. Branch Router가 `192.168.20.0/22` Summary LSA를 생성했는지 확인한다.
+
+`R1# show ip ospf database summary 192.168.20.0`
+
+5\. OSPF Area Filter-List나 Prefix-List에서 Summary Route를 차단하고 있지 않은지 확인한다.
+
+`R1# show ip prefix-list`
+`R1# show running-config | include filter-list`
+
+6\. Upstream Router의 OSPF Database에 Summary LSA가 수신되었는지 확인한다.
+
+`R2# show ip ospf database summary 192.168.20.0`
 
 ---
 
