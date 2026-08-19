@@ -273,4 +273,4 @@ Route Summarization을 사용하는 이유는 무엇인가?
 - 여러 개의 연속된 Network를 하나의 Route로 묶어 Routing Table을 단순하게 관리하기 위해서이다.
 
 Subnet Mask가 잘못 설정되면 어떤 문제가 발생하는가?
-- 단말이 목적지를 같은 Network 또는 다른 Network로 잘못 판단하여 통신하지 못할 수 있다.
+- 단말이 목적지를 다른 Network로 잘못 판단하여 통신하지 못할 수 있다.
