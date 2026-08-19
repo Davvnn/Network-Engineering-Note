@@ -200,24 +200,24 @@ DSW1# show ip interface brief
 DSW1# show run int vlan <VLAN ID>
 ```
 
-7\. 단말이 연결된 인터페이스의 Access VLAN과 Switch 간 Trunk의 Allowed VLAN을 확인한다.
+5\. 단말이 연결된 인터페이스의 Access VLAN과 Switch 간 Trunk의 Allowed VLAN을 확인한다.
 ```
 SW1# show vlan
 SW1# show interfaces trunk
 ```
 
-8\. 단말에서 Default Gateway로 Ping을 전송하여 같은 Subnet 내부의 통신이 정상적인지 확인한다.
+6\. 단말에서 Default Gateway로 Ping을 전송하여 Gateway까지의 통신이 정상적인지 확인한다.
 ```
 PC1> ping <Default Gateway>
 ```
 - Ping이 실패하면 단말의 IP 설정, Access VLAN, Trunk 및 SVI 설정을 확인한다.
 
-8\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table에 목적지 Network의 Route가 존재하는지 확인한다.
+7\. Default Gateway까지 통신되지만 다른 Subnet과 통신할 수 없다면 Routing Table에 목적지 Network의 Route가 존재하는지 확인한다.
 ```
 DSW1# show ip route <Destination IP>
 ```
 
-9\. Route가 존재하지만 통신하지 못한다면 ACL과 Return Path를 확인한다.
+8\. Route가 존재하지만 통신하지 못한다면 ACL과 Return Path를 확인한다.
 ```
 DSW1# show access-lists
 DSW1# show ip route <Source Network>
