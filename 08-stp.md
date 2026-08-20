@@ -227,35 +227,35 @@ MSTP에서는 전체 Network에 하나의 CIST Root가 선출되고, 각 MST Reg
 
 ![](images/08-stp-failover.png)
 
-1. SW1, SW2 및 SW3는 Proposal Bit가 포함된 BPDU를 서로 교환한다.
+1\. SW1, SW2 및 SW3는 Proposal Bit가 포함된 BPDU를 서로 교환한다.
 
-2. 각 Switch는 수신한 BPDU를 자신의 BPDU와 비교하고, 더 우수한 BPDU를 수신하면 해당 정보를 받아들인 후 Agreement Bit가 포함된 BPDU를 전송한다. 이 과정에서 가장 낮은 Bridge ID를 가진 SW1이 Root Bridge로 결정된다.
+2\. 각 Switch는 수신한 BPDU를 자신의 BPDU와 비교하고, 더 우수한 BPDU를 수신하면 해당 정보를 받아들인 후 Agreement Bit가 포함된 BPDU를 전송한다. 이 과정에서 가장 낮은 Bridge ID를 가진 SW1이 Root Bridge로 결정된다.
 
-3. Root Bridge인 SW1의 모든 동작 중인 Port는 Designated Port가 된다.
+3\. Root Bridge인 SW1의 모든 동작 중인 Port는 Designated Port가 된다.
 
-4. SW2는 SW1과 직접 연결된 Port를 Root Port로 선택한다.
+4\. SW2는 SW1과 직접 연결된 Port를 Root Port로 선택한다.
 
-5. SW3도 SW1과 직접 연결된 Port를 Root Port로 선택한다.
+5\. SW3도 SW1과 직접 연결된 Port를 Root Port로 선택한다.
 
-6. SW2와 SW3 사이의 Link에서는 Root Bridge까지의 Path Cost를 비교하여 Designated Port를 결정한다.
+6\. SW2와 SW3 사이의 Link에서는 Root Bridge까지의 Path Cost를 비교하여 Designated Port를 결정한다.
 
-7. Path Cost가 같으면 Bridge ID를 비교한다.
+7\. Path Cost가 같으면 Bridge ID를 비교한다.
 - SW2의 Bridge ID가 더 낮다고 가정하면 SW2의 Port가 Designated Port가 된다.
 - SW3의 Port는 Alternate Port가 되어 Discarding 상태로 동작한다.
 
-8. SW2의 Port가 SW3의 Port로 BPDU 및 Frame을 계속 전송하지만, SW3의 Port는 이를 수신만 하고 Frame을 전달하지 않으므로 Layer 2 Loop가 발생하지 않는다.
+8\. SW2의 Port가 SW3의 Port로 BPDU 및 Frame을 계속 전송하지만, SW3의 Port는 이를 수신만 하고 Frame을 전달하지 않으므로 Layer 2 Loop가 발생하지 않는다.
 
 ### Link 장애 발생
 
-1. SW1과 SW3 사이의 Link에 장애가 발생하면 SW3의 기존 Root Port가 Down 상태가 된다.
+1\. SW1과 SW3 사이의 Link에 장애가 발생하면 SW3의 기존 Root Port가 Down 상태가 된다.
 
-2. SW3는 SW2 방향의 Alternate Port를 새로운 Root Port로 선택한다.
+2\. SW3는 SW2 방향의 Alternate Port를 새로운 Root Port로 선택한다.
 
-3. RSTP는 해당 Port를 빠르게 Forwarding 상태로 전환한다.
+3\. RSTP는 해당 Port를 빠르게 Forwarding 상태로 전환한다.
 
-4. SW3의 Traffic은 SW2를 거쳐 Root Bridge인 SW1으로 전달된다.
+4\. SW3의 Traffic은 SW2를 거쳐 Root Bridge인 SW1으로 전달된다.
 
-5. 각 Switch는 Topology Change 정보를 전달하고 새로운 경로에 맞게 MAC Address Table을 갱신한다.
+5\. 각 Switch는 Topology Change 정보를 전달하고 새로운 경로에 맞게 MAC Address Table을 갱신한다.
 
 ### MSTP
 
