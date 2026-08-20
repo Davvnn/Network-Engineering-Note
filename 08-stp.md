@@ -33,8 +33,11 @@ Blocking Port는 Loop를 방지하기 위해 일반 Frame을 전달하지 않는
 
 STP Port는 다음 과정을 거쳐 Forwarding 상태로 전환된다.
 1\. Blocking: BPDU만 수신하며 Frame 전달과 MAC Address 학습은 하지 않는다.
+
 2\. Listening: BPDU를 송수신하지만 Frame 전달과 MAC Address 학습은 하지 않는다.
+
 3\. Learning: BPDU를 송수신하고 MAC Address를 학습하지만 Frame은 전달하지 않는다.
+
 4\. Forwarding: BPDU를 송수신하고 MAC Address를 학습하며 Frame을 전달한다.
 - Disabled: BPDU와 Frame을 처리하지 않으며 MAC Address도 학습하지 않는다.
 
