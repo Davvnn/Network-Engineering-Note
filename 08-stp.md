@@ -257,8 +257,144 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 
 5. 각 Switch는 Topology Change 정보를 전달하고 새로운 경로에 맞게 MAC Address Table을 갱신한다.
 
+### MSTP
+
+![](images/08-stp-mst.png)
 
 
+
+
+
+
+
+
+
+
+## 명령어
+
+### STP Mode 활성화
+```
+SW1(config)# spanning-tree mode rapid-pvst
+```
+
+RSTP를 동작시키는 Rapid PVST+를 설정한다.
+
+### Root Bridge 설정
+
+```
+SW1(config)# spanning-tree vlan 10 priority 4096 
+SW1(config)# spanning-tree vlan 20 priority 4096
+SW1(config)# spanning-tree vlan 10 root primary
+SW1(config)# spanning-tree vlan 20 root primary
+```
+
+SW1의 VLAN `10`과 VLAN `20`을 Root Bridge로 선출되도록 Bridge Priority에 낮은 값을 주거나 자동 조정한다. 
+
+```
+SW2(config)# spanning-tree vlan 10 priority 8192
+SW2(config)# spanning-tree vlan 20 priority 8192
+SW2(config)# spanning-tree vlan 10 root secondary
+SW2(config)# spanning-tree vlan 20 root secondary
+```
+SW2가 VLAN `10`과 VLAN `20`이 Secondary Root Bridge가 되도록 Bridge Priority값에 SW1 보다 더 높은 값을 주거나 자동으로 조정한다.
+
+
+### Port Cost 설정
+
+```
+SW1(config)# interface gi0/24
+SW1(config-if)# spanning-tree vlan 10 cost 10
+```
+VLAN `10`에서 해당 인터페이스의 Port Cost를 `10`으로 설정한다.
+
+
+### STP 상태 확인
+
+```
+SW1# show spanning-tree
+```
+전체 STP Instance의 Root Bridge, Port 역할 및 Port 상태를 확인한다.
+
+```
+SW1# show spanning-tree vlan 10
+```
+
+VLAN `10`의 Root Bridge 정보와 Port 역할 및 상태를 확인한다.
+
+```
+SW1# show spanning-tree root
+```
+
+각 STP Instance의 Root Bridge와 Root Port를 확인한다.
+
+
+```
+SW1# show spanning-tree summary
+```
+
+현재 STP Mode와 전체 STP Instance의 상태를 확인한다.
+
+### MSTP 설정
+
+```
+SW1(config)# spanning-tree mode mst
+SW1(config)# spanning-tree mst configuration
+SW1(config-mst)# name COMPANY
+SW1(config-mst)# revision 1
+SW1(config-mst)# instance 1 vlan 10,30
+SW1(config-mst)# instance 2 vlan 20,40
+SW1(config-mst)# exit
+```
+- MST Region Name: `COMPANY`
+- Revision Number: `1`
+- MST Instance `1`: VLAN `10`, `30`
+- MST Instance `2`: VLAN `20`, `40`
+
+
+### MSTI Regional Root Bridge 설정
+
+```
+SW1(config)# spanning-tree mst 1 priority 4096
+SW2(config)# spanning-tree mst 2 priority 4096
+SW1(config)# spanning-tree mst 1 root primary
+SW2(config)# spanning-tree mst 2 root primary
+```
+
+SW1이 MST Instance 1의 Regional Root Bridge로, SW2가 MST Instance 2의 Regional Root Bridge로 선출되도록 Bridge Priority에 낮은 값을 주거나 자동으로 조정한다.  
+
+```
+SW2(config)# spanning-tree mst 1 priority 8192
+SW1(config)# spanning-tree mst 2 priority 8192
+SW2(config)# spanning-tree mst 1 root secondary
+SW1(config)# spanning-tree mst 2 root secondary
+```
+SW2가 MST Instance 1의 Secondary Root Bridge로, SW1이 MST Instance 2의 Secondary Root Bridge가 되도록 Bridge Priority에 Primary Root보다 더 높은 값을 주거나 자동으로 조정한다.  
+### MST Bridge Priority 직접 설정
+
+### MSTP 상태 확인
+
+```
+SW1# show spanning-tree mst configuration
+```
+
+MST Region Name, Revision Number, Configuration Digest 및 VLAN과 MST Instance의 매핑 정보를 확인한다.
+
+```
+SW1# show spanning-tree mst
+```
+전체 MST Instance의 Regional Root Bridge와 Port 역할 및 상태를 확인한다.
+
+```
+SW1# show spanning-tree mst 0
+```
+MST Instance `0`의 CIST와 IST 정보를 확인한다.
+
+```
+SW1# show spanning-tree mst 1
+```
+MST Instance `1`의 Regional Root Bridge, Root Port 및 Port 상태를 확인한다.
+
+---
 
 
 
