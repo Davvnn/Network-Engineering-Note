@@ -59,7 +59,7 @@ Traditional STP는 Forward Delay Timer(Listening과 Learning)를 기다린 후 P
 
 ### RSTP Port State
 
-RSTP Port는 Discarding, Learning 및 Forwarding를 사용한다.
+RSTP Port는 Discarding, Learning 및 Forwarding 사용한다.
 - RSTP는 Traditional STP의 Blocking, Listening 및 Disabled 상태를 Discarding 상태로 통합했다.
 
 1\. Discarding: BPDU를 송수신하지만 Frame 전달과 MAC Address 학습은 하지 않는다.
@@ -277,7 +277,7 @@ MSTP에서는 전체 Network에 하나의 CIST Root가 선출되고, 각 MST Reg
 - SW2의 Port: Root Port
 - SW4의 Port: Designated Port
 
-7\. SW3와 SW6 사이의 Link는 에비 경로가 된다.
+7\. SW3와 SW6 사이의 Link는 예비 경로가 된다.
 - SW3의 Port: Alternate Port
 - SW6의 Port: Designated Port
 
@@ -321,7 +321,7 @@ SW2(config)# spanning-tree vlan 20 priority 8192
 SW2(config)# spanning-tree vlan 10 root secondary
 SW2(config)# spanning-tree vlan 20 root secondary
 ```
-SW2가 VLAN `10`과 VLAN `20`이 Secondary Root Bridge가 되도록 Bridge Priority값에 SW1 보다 더 높은 값을 주거나 자동으로 조정한다.
+SW2가 VLAN `10`과 VLAN `20`이 Secondary Root Bridge가 되도록 Bridge Priority 값에 SW1보다 더 높은 값을 주거나 자동으로 조정한다.
 
 
 ### Port Cost 설정
@@ -481,9 +481,40 @@ SW1# show spanning-tree mst configuration
 SW1# show spanning-tree mst
 ```
 
+## 실무 질문
 
+STP를 사용하는 이유는 무엇인가?
+- Switch 간 이중화 Link에서 Layer 2 Loop가 발생하는 것을 방지하기 위해 사용한다.
 
+Root Bridge는 어떻게 선출되는가?
+- 가장 낮은 Bridge ID를 가진 Switch가 선출된다. Priority가 같으면 가장 낮은 MAC Address를 가진 Switch가 선출된다.
 
+Root Port는 어떻게 선택하는가?
+- Non-Root Switch에서 Root Bridge까지 가장 낮은 Root Path Cost를 가진 Port를 선택한다.
+
+Designated Port는 어떻게 선택하는가?
+- 각 Network Segment에서 Root Bridge까지 가장 좋은 경로를 제공하는 Port를 선택한다.
+
+STP와 RSTP의 가장 큰 차이는 무엇인가?
+- RSTP는 Proposal과 Agreement 방식을 사용하여 STP보다 빠르게 Topology를 수렴한다.
+
+RSTP에서 Root Port에 장애가 발생하면 어떻게 동작하는가?
+- 기존 Alternate Port를 새로운 Root Port로 선택하고 빠르게 Forwarding 상태로 전환한다.
+
+Traditional STP에서 Topology가 변경되면 MAC Address Table은 어떻게 갱신되는가?
+- Topology 변경을 감지한 Switch가 TCN BPDU를 Root Bridge 방향으로 전달한다. Root Bridge는 TC Bit가 설정된 Configuration BPDU를 전체 Topology에 전파한다. 이를 수신한 Switch들은 MAC Address Aging Time을 Forward Delay 값인 기본 `15초`로 줄여 오래된 MAC Address 정보를 빠르게 삭제하고, 새로운 경로에서 MAC Address를 다시 학습한다.
+
+MSTP를 사용하는 이유는 무엇인가?
+- 여러 VLAN을 하나의 MST Instance로 묶어 STP Instance의 수를 줄이고, Instance별로 서로 다른 경로를 사용하여 Traffic을 분산하기 위해 사용한다.
+
+같은 MST Region에 속하려면 어떤 설정이 같아야 하는가?
+- MST Region Name, Revision Number 및 VLAN과 MST Instance의 매핑 정보가 같아야 한다.
+
+MSTP에서 CIST Root Bridge와 MSTI Regional Root Bridge의 차이는 무엇인가? 
+- CIST Root Bridge는 전체 CIST의 기준이 되는 Switch이고, MSTI Regional Root Bridge는 하나의 MST Region 내부에서 특정 MST Instance의 Root Bridge 역할을 하는 Switch이다.
+ 
+Boundary Port는 무엇인가? 
+- 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port이다. 
 
 
 
