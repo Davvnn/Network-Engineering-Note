@@ -21,14 +21,6 @@ Root Bridge는 가장 낮은 Bridge ID를 가진 Switch로 선출된다. Bridge 
 - Priority가 같으면 MAC Address가 가장 낮은 Switch가 Root Bridge로 선출된다.
 - Priority는 일반적으로 `4096` 단위로 설정한다.
 
-### STP Port 역할
-
-Root Port는 Non-Root Switch에서 Root Bridge까지 가장 낮은 Path Cost를 가진 인터페이스이다. Switch마다 하나의 Root Port를 선택한다.
-
-Designated Port는 각 Network Segment에서 Root Bridge 방향으로 가장 좋은 경로를 제공하는 인터페이스이다. Root Bridge의 모든 동작 중인 Port는 Designated Port가 된다.
-
-Blocking Port는 Loop를 방지하기 위해 일반 Frame을 전달하지 않는 인터페이스이다. 하지만 다른 스위치들이 보내는 BPDU는 계속 수신하여 STP Topology의 변경을 확인한다.
-
 ### STP Port
 
 STP Port는 다음 과정을 거쳐 Forwarding 상태로 전환된다.
@@ -40,6 +32,14 @@ STP Port는 다음 과정을 거쳐 Forwarding 상태로 전환된다.
 
 4\. Forwarding: BPDU를 송수신하고 MAC Address를 학습하며 Frame을 전달한다.
 - Disabled: BPDU와 Frame을 처리하지 않으며 MAC Address도 학습하지 않는다.
+
+### STP Port 역할
+
+Root Port는 Non-Root Switch에서 Root Bridge까지 가장 낮은 Path Cost를 가진 인터페이스이다. Switch마다 하나의 Root Port를 선택한다.
+
+Designated Port는 각 Network Segment에서 Root Bridge 방향으로 가장 좋은 경로를 제공하는 인터페이스이다. Root Bridge의 모든 동작 중인 Port는 Designated Port가 된다.
+
+Blocking Port는 Loop를 방지하기 위해 일반 Frame을 전달하지 않는 인터페이스이다. 하지만 다른 스위치들이 보내는 BPDU는 계속 수신하여 STP Topology의 변경을 확인한다.
 
 ### STP Convergence Timer
 
@@ -66,4 +66,46 @@ RSTP Port는 Discarding, Learning 및 Forwarding를 사용한다.
 2\. Learning: BPDU를 송수신하고 MAC Address를 학습하지만 Frame은 전달하지 않는다.
 
 3\. Forwarding: BPDU를 송수신하고 MAC Address를 학습하며 Frame을 전달한다.
+
+### RSTP의 Port 역할
+
+Root Port는 Root Bridge까지 가장 좋은 경로를 가진 Port이다.
+
+Designated Port는 각 Network Segment에서 Root Bridge까지 가장 좋은 경로를 제공하는 Port이다.
+
+Alternate Port는 Root Port를 대신할 수 있는 예비 Discarding Port이다.
+
+Backup Port는 Designated Port를 대신할 수 있는 예비 Discarding Port이다.
+- Backup Port는 주로 Hub와 같이 하나의 Network Segment에 여러 Port가 연결된 환경에서 발생한다. 현재는 Hub를 거의 사용하지 않기 때문에 실제 Network에서 볼 일은 많지 않다.
+
+### RSTP Convergence
+
+1\. 스위치는 자신의 Designated Port를 통해 Proposal Bit가 포함된 BPDU를 이웃 Switch로 전송한다.
+
+2\. BPDU를 수신한 Switch는 Root Bridge ID, Root Path Cost, Sender Bridge ID 및 Port ID를 비교한다.
+
+3\. 더 우수한 BPDU를 수신하면 BPDU에 포함된 Root 정보를 받아들이고, 해당 BPDU를 수신한 Port를 Root Port로 선택한다.
+
+4\. Switch는 임시 Loop를 방지하기 위해 Root Port를 제외한 Non-Edge Designated Port를 Discarding 상태로 전환한다.
+- 이 과정을 Sync라고 한다.
+- Edge Port는 Sync 대상에서 제외된다.
+
+5\. Sync가 완료되면 Agreement Bit가 포함된 BPDU를 상위 Switch로 전송한다.
+
+6\. Agreement BPDU를 수신한 Switch는 해당 Designated Port를 빠르게 Forwarding 상태로 전환한다.
+
+7\. 같은 과정이 하위 Switch에서도 반복되면서 전체 RSTP Topology가 빠르게 수렴한다.
+
+RSTP는 Traditional STP처럼 Listening과 Learning 상태에서 각각 15초의 Timer를 기다리지 않는다.
+- 하지만 상대 Switch가 RSTP를 지원하지 않으면 해당 Port는 Traditional STP 방식으로 동작한다.
+
+RSTP의 Link Type
+- Point-to-Point: Switch 간에 Full-Duplex로 연결된 Link이다.
+- Shared: Hub와 같이 여러 장비가 하나의 Segment에 Half-Duplex로 동작하는 Link이다.
+- Edge: PC나 Server와 같은 단말이 연결된 Port이다.
+
+RSTP Sync는 Point-to-Point Link에서만 동작한다.
+
+### PVST+ / Rapid PVST+
+
 
