@@ -141,3 +141,9 @@ MST Switch는 BPDU를 교환할 때 CIST 정보와 각 MSTI의 정보를 하나�
 다른 MST Region이나 Non-MSTP Switch에서는 하나의 MST Region을 하나의 논리적인 Switch처럼 인식한다.
 - Boundary Port: 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port이다.
 
+### MSTP Root Bridge 종류
+
+MSTP에서는 CIST와 각 MST Instance마다 Root Bridge를 선출할 수 있다.
+- CIST Root Bridge: 전체 Network의 CIST에서 가장 낮은 Bridge ID를 가진 Switch이다.
+- CIST Regional Root Bridge: 각 MST Region에서 CIST Root까지 가장 낮은 External Root Path Cost를 가지며, 해당 Region의 IST에서 Root Bridge로 동작하는 Switch이다.
+- MSTI Regional Root Bridge: 하나의 MST Region에서 해당 MSTI의 Root Bridge 역할을 하는 Switch이다. MSTI마다 서로 다른 Root Bridge가 선출될 수 있다.
