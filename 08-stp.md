@@ -136,7 +136,7 @@ MSTP는 여러 VLAN을 동일한 MST Instance에 매핑하여 STP Instance의 �
 MST Switch는 BPDU를 교환할 때 CIST 정보와 각 MSTI의 정보를 하나의 MST BPDU에 포함하여 전달한다.  
 - IST: MST Region 내부에서 동작하는 MSTI 0이다. 
 - CST: 서로 다른 MST Region과 Non-MSTP Switch를 연결하는 Spanning Tree이다.
-- CIST: 각 MST Region의 IST와 Region 사이의 CST를 전체의 Spanning Tree이다.
+- CIST: 각 MST Region 내부의 IST와 MST Region 사이의 CST 전체를 포함하는 Spanning Tree이다.
 
 다른 MST Region이나 Non-MSTP Switch에서는 하나의 MST Region을 하나의 논리적인 Switch처럼 인식한다.
 - Boundary Port: 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port이다.
