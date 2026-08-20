@@ -143,11 +143,11 @@ MST Switch는 BPDU를 교환할 때 CIST 정보와 각 MSTI의 정보를 하나�
 
 ### MSTP Root Bridge 종류
 
-MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출된다.
-- CIST Root Bridge: 전체 Network의 CIST에서 가장 낮은 Bridge ID를 가진 Switch이다.
-- CIST Regional Root Bridge: 각 MST Region에서 CIST Root까지 가장 낮은 External Root Path Cost를 가지며, 해당 Region의 IST에서 Root Bridge로 동작하는 Switch이다.
-- CIST Root가 MST Region 내부에 있으면 해당 Switch가 그 Region의 CIST Regional Root 역할도 한다.
-- MSTI Regional Root Bridge: 하나의 MST Region에서 해당 MSTI의 Root Bridge 역할을 하는 Switch이다. MSTI마다 서로 다른 Root Bridge가 선출될 수 있다.
+MSTP에서는 전체 Network에 하나의 CIST Root가 선출되고, 각 MST Region에 하나의 CIST Regional Root가 선출되며, 각 MST Region의 MSTI마다 하나의 MSTI Regional Root가 선출된다.
+- CIST Root: 전체 CIST의 Root Bridge이며, MSTI 0의 Bridge Priority와 MAC Address를 기준으로 선출된다.
+- CIST Regional Root: 각 MST Region에서 CIST Root까지 가장 우수한 외부 경로를 가진 Switch, CIST Root가 해당 MST Region 내부에 있으면 CIST Root가 그 Region의 CIST Regional Root도 됨
+- MSTI Regional Root: 각 MST Region의 MSTI별로 가장 낮은 Bridge ID를 가진 Switch
+
 
 ## 동작 원리
 
@@ -210,8 +210,8 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 5\. 전체 CIST에서 CIST Root Bridge를 선출한다.
 
 6\. 각 MST Region에서는 CIST Root Bridge까지 가장 좋은 경로를 가진 Switch가 CIST Regional Root Bridge가 된다.
-- CIST Regional Root Bridge는 해당 MST Region의 IST에서 Root Bridge로 동작한다.
-- CIST Root Bridge가 해당 MST Region 내부에 있으면 같은 Switch가 그 Region의 CIST Regional Root Bridge 역할도 한다.
+- CIST Regional Root는 해당 MST Region 내부에서 MSTI 0, 즉 IST의 Root Bridge로 동작한다.
+- CIST Root Bridge가 MST Region 내부에 있으면 해당 Region의 CIST Regional Root Bridge도 된다.
 
 7\. 각 MSTI에서는 MSTI Regional Root Bridge를 별도로 선출한다.
 - MSTI마다 서로 다른 Regional Root Bridge를 사용할 수 있다.
@@ -259,16 +259,41 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 
 ### MSTP
 
-![](images/08-stp-mst.png)
+![](images/08-mstp-region.png)
 
+1\. SW1, SW2 및 SW3는 Region123을 구성하고, SW4, SW5 및 SW6는 Region456을 구성한다.
 
+2\. 각 Switch는 CIST 정보와 MSTI 정보를 하나의 MST BPDU에 포함하여 전달한다.
 
+3\. SW4가 전체 CIST의 Root Bridge로 동작하며, Region456의 CIST Regional Root Bridge 역할도 한다.
 
+4\. Region123에서는 CIST Root Bridge까지 가장 좋은 Path Cost를 가진 SW2가 CIST Regional Root Bridge로 동작한다.
 
+5\. 서로 다른 MST Region을 연결하는 다음 Port는 Boundary Port로 동작한다.
+- SW2 `G0/2` ↔ SW4 `G0/2`
+- SW3 `G0/2` ↔ SW6 `G0/2`
 
+6\. SW2와 SW4 사이의 Link가 CIST의 경로가 된다.
+- SW2의 Port: Root Port
+- SW4의 Port: Designated Port
 
+7\. SW3와 SW6 사이의 Link는 에비 경로가 된다.
+- SW3의 Port: Alternate Port
+- SW6의 Port: Designated Port
 
+8\. Region123의 MSTI `1`에서는 SW1이 Regional Root Bridge로 동작하고, Region456의 MSTI `1`에서는 SW4가 Regional Root Bridge로 동작한다.
 
+9\. VLAN Traffic은 Region 내부에서는 매핑된 MSTI의 경로를 사용하고, 다른 Region으로 전달될 때는 CIST가 선택한 경로를 사용한다.
+
+10\. SW2와 SW4 사이의 Boundary Link에 장애가 발생하면 SW2의 기존 Root Port가 Down 상태가 된다.
+
+11\. SW3의 Alternate Port가 새로운 Root Port로 선택되어 빠르게 Forwarding 상태로 전환된다.
+
+12\. SW3는 Region123의 새로운 CIST Regional Root Bridge로 동작한다.
+
+13\. Region 사이의 Traffic은 SW3와 SW6 사이의 Boundary Link를 통해 전달된다.
+
+14\. 각 Switch는 Topology Change 정보를 전달하고 새로운 경로에 맞게 MAC Address Table을 갱신한다.
 
 ## 명령어
 
@@ -395,6 +420,66 @@ SW1# show spanning-tree mst 1
 MST Instance `1`의 Regional Root Bridge, Root Port 및 Port 상태를 확인한다.
 
 ---
+
+## Troubleshooting
+
+### Primary Link 장애 후 Backup Link로 전환되지 않는 경우
+
+1\. Primary Link와 Backup Link의 물리적인 상태를 확인한다.
+```
+SW1# show interfaces status
+SW1# show interfaces gi0/23 ← Active Port
+SW1# show interfaces gi0/24 ← Block Port
+SW1# show interfaces counters errors
+SW1# clear counters gi0/24
+SW1# show interfaces counters errors
+```
+- Primary Link가 실제로 `Down` 상태인지 확인한다.
+- Backup Link가 물리적으로 `Up` 상태인지 확인한다.
+- Backup Link의 `Input Errors`와 `CRC Error`를 확인한다.
+- 기존 Counter를 기록한 후 Backup Link의 Counter만 초기화한다.
+- 잠시 후 Error Counter를 다시 확인하여 `Input Errors`와 `CRC Error`가 계속 증가하는지 확인한다.
+
+2\. Root Bridge가 의도한 Switch인지 확인한다.
+```
+SW1# show spanning-tree root
+SW1# show spanning-tree <VLAN-ID>
+```
+
+3\. Primary Link와 Backup Link의 Port 역할 및 상태를 확인한다.
+```
+SW1# show spanning-tree
+SW1# show spanning-tree interface gi0/23 detail
+SW1# show spanning-tree interface gi0/24 detail
+```
+
+4\. STP 보호 기능으로 인해 Port가 차단되었는지 확인한다.
+- Root Guard
+- Loop Guard
+- BPDU Guard
+
+```
+SW1# show spanning-tree inconsistentports
+SW1# show interfaces status err-disabled
+SW1# show running-config interface gi0/24
+SW1# show logging
+```
+
+5\. RSTP를 사용하는 경우 Link Type을 확인한다.
+
+```
+SW1# show spanning-tree interface gi0/24 detail
+SW1# show interfaces gi0/24
+```
+- Proposal과 Agreement를 이용한 빠른 전환은 Point-to-Point Link에서 동작한다.
+- Switch 간 Link가 Half-Duplex 또는 Shared Link로 인식되면 Backup Link의 상태 전환이 지연될 수 있다.
+
+
+6\. MSTP를 사용하는 경우 MST Region과 MSTI 설정을 확인한다.
+```
+SW1# show spanning-tree mst configuration
+SW1# show spanning-tree mst
+```
 
 
 
