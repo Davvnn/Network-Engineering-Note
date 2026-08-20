@@ -153,74 +153,74 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 
 ### STP 동작 과정 
  
-1. Switch들은 BPDU를 서로 교환한다. 
+1\. Switch들은 BPDU를 서로 교환한다. 
  
-2. BPDU에 포함된 Bridge ID를 비교하여 가장 낮은 Bridge ID를 가진 Switch를 Root Bridge로 선출한다. 
+2\. BPDU에 포함된 Bridge ID를 비교하여 가장 낮은 Bridge ID를 가진 Switch를 Root Bridge로 선출한다. 
  
-3. Root Bridge가 아닌 각 Switch는 Root Bridge까지 가장 좋은 경로를 가진 인터페이스를 Root Port로 선택한다. 
+3\. Root Bridge가 아닌 각 Switch는 Root Bridge까지 가장 좋은 경로를 가진 인터페이스를 Root Port로 선택한다. 
  
-4. 각 Network Segment에서는 Root Bridge까지 가장 좋은 경로를 제공하는 인터페이스를 Designated Port로 선택한다. 
+4\. 각 Network Segment에서는 Root Bridge까지 가장 좋은 경로를 제공하는 인터페이스를 Designated Port로 선택한다. 
   
-5. Loop가 발생할 수 있는 인터페이스는 Blocking 상태로 전환된다. 
+5\. Loop가 발생할 수 있는 인터페이스는 Blocking 상태로 전환된다. 
  
-6. 현재 사용 중인 Link에 장애가 발생하면 STP는 Topology를 다시 계산한다. 
+6\. 현재 사용 중인 Link에 장애가 발생하면 STP는 Topology를 다시 계산한다. 
   
-7. Topology 변경을 감지한 Switch는 Root Port를 통해 TCN(Topology Change Notification) BPDU를 Root Bridge 방향으로 전달한다. 
+7\. Topology 변경을 감지한 Switch는 Root Port를 통해 TCN(Topology Change Notification) BPDU를 Root Bridge 방향으로 전달한다. 
  
-8. TCN BPDU를 수신한 Root Bridge는 TC Bit가 설정된 Configuration BPDU를 전체 STP Topology에 전파한다. 
+8\. TCN BPDU를 수신한 Root Bridge는 TC Bit가 설정된 Configuration BPDU를 전체 STP Topology에 전파한다. 
  
-9. TC Bit를 수신한 Switch들은 MAC Address Table의 Aging Time을 기본 `300초`에서 Forward Delay 값인 `15초`로 줄여 오래된 정보를 빠르게 삭제하고, 새로운 경로를 통해 MAC Address를 다시 학습한다.
+9\. TC Bit를 수신한 Switch들은 MAC Address Table의 Aging Time을 기본 `300초`에서 Forward Delay 값인 `15초`로 줄여 오래된 정보를 빠르게 삭제하고, 새로운 경로를 통해 MAC Address를 다시 학습한다.
 
-10. 새로운 경로가 선택되면 기존 Blocking Port가 Listening과 Learning 상태를 거쳐 Forwarding 상태로 전환된다. 
+10\. 새로운 경로가 선택되면 기존 Blocking Port가 Listening과 Learning 상태를 거쳐 Forwarding 상태로 전환된다. 
 
 ### RSTP 동작 과정
 
-1. RSTP Switch들은 서로 이웃 Switch들에게 Proposal Bit가 포함된 BPDU를 전송한다.
+1\. RSTP Switch들은 서로 이웃 Switch들에게 Proposal Bit가 포함된 BPDU를 전송한다.
 
-2. Proposal Bit가 포함된 BPDU를 수신한 Switch는 자신의 BPDU와 비교하여 더 우수한 BPDU인지 확인한다.
+2\. Proposal Bit가 포함된 BPDU를 수신한 Switch는 자신의 BPDU와 비교하여 더 우수한 BPDU인지 확인한다.
 
-3. 더 우수한 BPDU라면 해당 Port를 Root Port로 선택하고 Sync를 시작한다. 이때 임시 Loop를 방지하기 위해 자신의 Non-Edge Designated Port를 Discarding 상태로 전환한다.
+3\. 더 우수한 BPDU라면 해당 Port를 Root Port로 선택하고 Sync를 시작한다. 이때 임시 Loop를 방지하기 위해 자신의 Non-Edge Designated Port를 Discarding 상태로 전환한다.
 - Edge Port는 Sync 대상에서 제외된다.
 
-4. Sync가 완료되면 Switch는 Agreement Bit가 포함된 BPDU를 상위 Switch로 전송한다.
+4\. Sync가 완료되면 Switch는 Agreement Bit가 포함된 BPDU를 상위 Switch로 전송한다.
 
-5. Agreement Bit가 포함된 BPDU를 수신한 상위 Switch는 해당 Designated Port를 Forwarding 상태로 전환한다.
+5\. Agreement Bit가 포함된 BPDU를 수신한 상위 Switch는 해당 Designated Port를 Forwarding 상태로 전환한다.
 
-6. 이 과정이 하위 Switch에서도 반복되면서 전체 RSTP Topology가 빠르게 수렴한다.
+6\. 이 과정이 하위 Switch에서도 반복되면서 전체 RSTP Topology가 빠르게 수렴한다.
 
-7. 만약 Root Port에 장애가 발생하면 Alternate Port가 새로운 Root Port로 선택되어 빠르게 Forwarding 상태로 전환된다.
+7\. 만약 Root Port에 장애가 발생하면 Alternate Port가 새로운 Root Port로 선택되어 빠르게 Forwarding 상태로 전환된다.
 - RSTP는 Traditional STP처럼 Listening과 Learning 상태에서 각각 15초의 Timer를 기다리지 않는다.
 - Proposal과 Agreement를 이용한 빠른 전환은 Point-to-Point Link에서만 동작하며, 상대 Switch가 RSTP를 지원하지 않으면 해당 Port는 Traditional STP 방식으로 동작한다.
 
 ### MSTP 동작 과정
 
-1. 관리자는 여러 VLAN을 하나의 MST Instance에 매핑한다.
+1\. 관리자는 여러 VLAN을 하나의 MST Instance에 매핑한다.
 
-2. 같은 MST Region에 속하는 Switch들은 다음 설정을 동일하게 구성한다.
+2\. 같은 MST Region에 속하는 Switch들은 다음 설정을 동일하게 구성한다.
 - MST Region Name
 - Revision Number
 - VLAN과 MST Instance의 매핑 정보
 
-3. 설정 중 하나라도 다르면 서로 다른 MST Region으로 인식한다.
+3\. 설정 중 하나라도 다르면 서로 다른 MST Region으로 인식한다.
 - Switch는 VLAN과 MST Instance의 매핑 정보를 기반으로 Configuration Digest를 생성하고, Region Name과 Revision Number를 함께 비교하여 같은 MST Region인지 확인한다.
 
-4. MST Instance에 매핑되지 않은 VLAN은 MSTI `0`에 포함된다.
+4\. MST Instance에 매핑되지 않은 VLAN은 MSTI `0`에 포함된다.
 - MSTI `0`은 MST Region 내부에서 IST로 동작한다.
 
-5. 전체 CIST에서 CIST Root Bridge를 선출한다.
+5\. 전체 CIST에서 CIST Root Bridge를 선출한다.
 
-6. 각 MST Region에서는 CIST Root Bridge까지 가장 좋은 경로를 가진 Switch가 CIST Regional Root Bridge가 된다.
+6\. 각 MST Region에서는 CIST Root Bridge까지 가장 좋은 경로를 가진 Switch가 CIST Regional Root Bridge가 된다.
 - CIST Regional Root Bridge는 해당 MST Region의 IST에서 Root Bridge로 동작한다.
 - CIST Root Bridge가 해당 MST Region 내부에 있으면 같은 Switch가 그 Region의 CIST Regional Root Bridge 역할도 한다.
 
-7. 각 MSTI에서는 MSTI Regional Root Bridge를 별도로 선출한다.
+7\. 각 MSTI에서는 MSTI Regional Root Bridge를 별도로 선출한다.
 - MSTI마다 서로 다른 Regional Root Bridge를 사용할 수 있다.
 
-8. MST Switch는 CIST 정보와 각 MSTI의 정보를 하나의 MST BPDU에 포함하여 전달한다.
+8\. MST Switch는 CIST 정보와 각 MSTI의 정보를 하나의 MST BPDU에 포함하여 전달한다.
 
-9. 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port는 Boundary Port로 동작한다.
+9\. 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port는 Boundary Port로 동작한다.
 
-10. 외부 Network에서는 하나의 MST Region을 하나의 논리적인 Switch처럼 인식한다.
+10\. 외부 Network에서는 하나의 MST Region을 하나의 논리적인 Switch처럼 인식한다.
 - MST Region 내부의 MSTI별 Topology는 외부에 직접 노출되지 않는다.
 
 
