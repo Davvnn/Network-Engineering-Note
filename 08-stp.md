@@ -143,7 +143,8 @@ MST Switch는 BPDU를 교환할 때 CIST 정보와 각 MSTI의 정보를 하나�
 
 ### MSTP Root Bridge 종류
 
-MSTP에서는 CIST와 각 MST Instance마다 Root Bridge를 선출할 수 있다.
+MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출된다.
 - CIST Root Bridge: 전체 Network의 CIST에서 가장 낮은 Bridge ID를 가진 Switch이다.
 - CIST Regional Root Bridge: 각 MST Region에서 CIST Root까지 가장 낮은 External Root Path Cost를 가지며, 해당 Region의 IST에서 Root Bridge로 동작하는 Switch이다.
+- CIST Root가 MST Region 내부에 있으면 해당 Switch가 그 Region의 CIST Regional Root 역할도 한다.
 - MSTI Regional Root Bridge: 하나의 MST Region에서 해당 MSTI의 Root Bridge 역할을 하는 Switch이다. MSTI마다 서로 다른 Root Bridge가 선출될 수 있다.
