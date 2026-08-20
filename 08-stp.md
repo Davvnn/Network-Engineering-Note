@@ -42,7 +42,7 @@ Designated Port는 각 Network Segment에서 Root Bridge 방향으로 가장 좋
 
 Blocking Port는 Loop를 방지하기 위해 일반 Frame을 전달하지 않는 인터페이스이다. 하지만 다른 스위치들이 보내는 BPDU는 계속 수신하여 STP Topology의 변경을 확인한다.
 
-### STP Convergence Timer
+### STP Convergence
 
 Traditional STP는 Port가 Blocking 상태에서 Forwarding 상태로 전환되는 데 30초 이상이 걸릴 수 있다.
 - 기존 BPDU 정보가 만료될 때까지 기다려야 하는 경우 Max Age Timer로 최대 20초가 소요될 수 있다. 
@@ -109,4 +109,35 @@ RSTP Sync는 Point-to-Point Link에서만 동작한다.
 
 ### PVST+ / Rapid PVST+
 
+PVST+(Per-VLAN Spanning Tree Plus)는 VLAN마다 별도의 STP Instance를 동작시키는 Cisco 방식이다. VLAN별로 서로 다른 Root Bridge와 경로를 설정할 수 있다.
+- STP: 모든 VLAN이 하나의 STP Instance를 사용한다.
+- RSTP: 모든 VLAN이 하나의 RSTP Instance를 사용한다.
+- PVST+: VLAN마다 STP가 동작한다.
+- Rapid PVST+: VLAN마다 RSTP가 동작한다.
+
+현재 대부분의 Cisco 스위치는 Rapid PVST+를 사용하며, VLAN마다 각각의 STP Instance가 동작한다.
+
+### MSTP
+
+MSTP(Multiple Spanning Tree Protocol)는 여러 VLAN을 하나의 STP Instance로 묶어 관리하는 프로토콜이다.
+
+PVST+와 Rapid PVST+는 VLAN마다 별도의 STP Instance가 동작하므로 VLAN이 많아질수록 CPU, Memory 및 BPDU 처리량이 증가한다. 
+
+MSTP는 여러 VLAN을 동일한 MST Instance에 매핑하여 STP Instance의 수를 줄일 수 있다. 또한 Instance별로 서로 다른 Root Bridge를 지정하여 Traffic을 여러 Link로 분산할 수 있다.
+- MSTI 0: IST(Internal Spanning Tree)라고 하며 모든 MST Region에 기본으로 존재한다.
+- MST Instance를 생성하고 지정한 VLAN을 해당 Instance에 매핑할 수 있다.
+- 다른 Instance에 매핑되지 않은 VLAN은 기본적으로 MSTI 0에 포함된다.
+
+같은 MST Region에 속하는 Switch들은 다음 설정이 동일해야 한다.
+- MST Region Name
+- Revision Number
+- VLAN과 MST Instance의 매핑 정보
+
+MST Switch는 BPDU를 교환할 때 CIST 정보와 각 MSTI의 정보를 하나의 MST BPDU에 포함하여 전달한다.  
+- IST: MST Region 내부에서 동작하는 MSTI 0이다. 
+- CST: 서로 다른 MST Region과 Non-MSTP Switch를 연결하는 Spanning Tree이다.
+- CIST: 각 MST Region의 IST와 Region 사이의 CST를 전체의 Spanning Tree이다.
+
+다른 MST Region이나 Non-MSTP Switch에서는 하나의 MST Region을 하나의 논리적인 Switch처럼 인식한다.
+- Boundary Port: 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port이다.
 
