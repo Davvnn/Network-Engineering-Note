@@ -173,3 +173,23 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
  
 10. TC Bit를 수신한 Switch들은 MAC Address Table의 Aging Time을 기본 `300초`에서 Forward Delay 값인 `15초`로 줄여 오래된 정보를 빠르게 삭제하고, 새로운 경로를 통해 MAC Address를 다시 학습한다.
 
+### RSTP 동작 과정
+
+1. RSTP Switch들은 서로 이웃 Switch들에게 Proposal Bit가 포함된 BPDU를 전송한다.
+
+2. Proposal Bit가 포함된 BPDU를 수신한 Switch는 자신의 BPDU와 비교하여 더 우수한 BPDU인지 확인한다.
+
+3. 더 우수한 BPDU라면 해당 Port를 Root Port로 선택하고 Sync를 시작한다. 이때 임시 Loop를 방지하기 위해 자신의 Non-Edge Designated Port를 Discarding 상태로 전환한다.
+- Edge Port는 Sync 대상에서 제외된다.
+
+4. Sync가 완료되면 Switch는 Agreement Bit가 포함된 BPDU를 상위 Switch로 전송한다.
+
+5. Agreement Bit가 포함된 BPDU를 수신한 상위 Switch는 해당 Designated Port를 Forwarding 상태로 전환한다.
+
+6. 이 과정이 하위 Switch에서도 반복되면서 전체 RSTP Topology가 빠르게 수렴한다.
+
+7. 만약 Root Port에 장애가 발생하면 Alternate Port가 새로운 Root Port로 선택되어 빠르게 Forwarding 상태로 전환된다.
+- RSTP는 Traditional STP처럼 Listening과 Learning 상태에서 각각 15초의 Timer를 기다리지 않는다.
+- Proposal과 Agreement를 이용한 빠른 전환은 Point-to-Point Link에서만 동작하며, 상대 Switch가 RSTP를 지원하지 않으면 해당 Port는 Traditional STP 방식으로 동작한다.
+
+### MSTP 동작 과정
