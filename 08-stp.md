@@ -24,6 +24,7 @@ Root Bridge는 가장 낮은 Bridge ID를 가진 Switch로 선출된다. Bridge 
 ### STP Port State
 
 STP Port는 다음 과정을 거쳐 Forwarding 상태로 전환된다.
+
 1\. Blocking: BPDU만 수신하며 Frame 전달과 MAC Address 학습은 하지 않는다.
 
 2\. Listening: BPDU를 송수신하지만 Frame 전달과 MAC Address 학습은 하지 않는다.
