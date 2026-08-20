@@ -148,3 +148,28 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 - CIST Regional Root Bridge: 각 MST Region에서 CIST Root까지 가장 낮은 External Root Path Cost를 가지며, 해당 Region의 IST에서 Root Bridge로 동작하는 Switch이다.
 - CIST Root가 MST Region 내부에 있으면 해당 Switch가 그 Region의 CIST Regional Root 역할도 한다.
 - MSTI Regional Root Bridge: 하나의 MST Region에서 해당 MSTI의 Root Bridge 역할을 하는 Switch이다. MSTI마다 서로 다른 Root Bridge가 선출될 수 있다.
+
+## 동작 원리
+
+### STP 동작 과정 
+ 
+1. Switch들은 BPDU를 서로 교환한다. 
+ 
+2. BPDU에 포함된 Bridge ID를 비교하여 가장 낮은 Bridge ID를 가진 Switch를 Root Bridge로 선출한다. 
+ 
+3. Root Bridge가 아닌 각 Switch는 Root Bridge까지 가장 좋은 경로를 가진 인터페이스를 Root Port로 선택한다. 
+ 
+4. 각 Network Segment에서는 Root Bridge까지 가장 좋은 경로를 제공하는 인터페이스를 Designated Port로 선택한다. 
+  
+5. Loop가 발생할 수 있는 인터페이스는 Blocking 상태로 전환된다. 
+ 
+6. 현재 사용 중인 Link에 장애가 발생하면 STP는 Topology를 다시 계산한다. 
+ 
+7. 새로운 경로가 선택되면 기존 Blocking Port가 Listening과 Learning 상태를 거쳐 Forwarding 상태로 전환된다. 
+ 
+8. Topology 변경을 감지한 Switch는 Root Port를 통해 TCN(Topology Change Notification) BPDU를 Root Bridge 방향으로 전달한다. 
+ 
+9. TCN BPDU를 수신한 Root Bridge는 TC Bit가 설정된 Configuration BPDU를 전체 STP Topology에 전파한다. 
+ 
+10. TC Bit를 수신한 Switch들은 MAC Address Table의 Aging Time을 기본 `300초`에서 Forward Delay 값인 `15초`로 줄여 오래된 정보를 빠르게 삭제하고, 새로운 경로를 통해 MAC Address를 다시 학습한다.
+
