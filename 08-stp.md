@@ -21,7 +21,7 @@ Root Bridge는 가장 낮은 Bridge ID를 가진 Switch로 선출된다. Bridge 
 - Priority가 같으면 MAC Address가 가장 낮은 Switch가 Root Bridge로 선출된다.
 - Priority는 일반적으로 `4096` 단위로 설정한다.
 
-### STP Port
+### STP Port State
 
 STP Port는 다음 과정을 거쳐 Forwarding 상태로 전환된다.
 1\. Blocking: BPDU만 수신하며 Frame 전달과 MAC Address 학습은 하지 않는다.
@@ -56,7 +56,7 @@ RSTP도 BPDU를 교환하여 Root Bridge를 선출하고, 이중화 경로 중 �
 
 Traditional STP는 Forward Delay Timer(Listening과 Learning)를 기다린 후 Port를 Forwarding 상태로 전환하지만, RSTP는 스위치들끼리 Proposal과 Agreement BPDU를 교환하여 Loop가 없음을 확인하면 Port를 빠르게 Forwarding 상태로 전환한다.
 
-### RSTP Port
+### RSTP Port State
 
 RSTP Port는 Discarding, Learning 및 Forwarding를 사용한다.
 - RSTP는 Traditional STP의 Blocking, Listening 및 Disabled 상태를 Discarding 상태로 통합했다.
