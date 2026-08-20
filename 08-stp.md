@@ -443,7 +443,7 @@ SW1# show interfaces counters errors
 2\. Root Bridge가 의도한 Switch인지 확인한다.
 ```
 SW1# show spanning-tree root
-SW1# show spanning-tree <VLAN-ID>
+SW1# show spanning-tree vlan <VLAN-ID>
 ```
 
 3\. Primary Link와 Backup Link의 Port 역할 및 상태를 확인한다.
