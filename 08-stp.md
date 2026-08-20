@@ -164,14 +164,14 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 5. Loop가 발생할 수 있는 인터페이스는 Blocking 상태로 전환된다. 
  
 6. 현재 사용 중인 Link에 장애가 발생하면 STP는 Topology를 다시 계산한다. 
+  
+7. Topology 변경을 감지한 Switch는 Root Port를 통해 TCN(Topology Change Notification) BPDU를 Root Bridge 방향으로 전달한다. 
  
-7. 새로운 경로가 선택되면 기존 Blocking Port가 Listening과 Learning 상태를 거쳐 Forwarding 상태로 전환된다. 
+8. TCN BPDU를 수신한 Root Bridge는 TC Bit가 설정된 Configuration BPDU를 전체 STP Topology에 전파한다. 
  
-8. Topology 변경을 감지한 Switch는 Root Port를 통해 TCN(Topology Change Notification) BPDU를 Root Bridge 방향으로 전달한다. 
- 
-9. TCN BPDU를 수신한 Root Bridge는 TC Bit가 설정된 Configuration BPDU를 전체 STP Topology에 전파한다. 
- 
-10. TC Bit를 수신한 Switch들은 MAC Address Table의 Aging Time을 기본 `300초`에서 Forward Delay 값인 `15초`로 줄여 오래된 정보를 빠르게 삭제하고, 새로운 경로를 통해 MAC Address를 다시 학습한다.
+9. TC Bit를 수신한 Switch들은 MAC Address Table의 Aging Time을 기본 `300초`에서 Forward Delay 값인 `15초`로 줄여 오래된 정보를 빠르게 삭제하고, 새로운 경로를 통해 MAC Address를 다시 학습한다.
+
+10. 새로운 경로가 선택되면 기존 Blocking Port가 Listening과 Learning 상태를 거쳐 Forwarding 상태로 전환된다. 
 
 ### RSTP 동작 과정
 
