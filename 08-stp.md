@@ -193,3 +193,62 @@ MSTP에서는 전체 CIST와 각 MST Region의 MSTI마다 Root Bridge가 선출�
 - Proposal과 Agreement를 이용한 빠른 전환은 Point-to-Point Link에서만 동작하며, 상대 Switch가 RSTP를 지원하지 않으면 해당 Port는 Traditional STP 방식으로 동작한다.
 
 ### MSTP 동작 과정
+
+1. 관리자는 여러 VLAN을 하나의 MST Instance에 매핑한다.
+
+2. 같은 MST Region에 속하는 Switch들은 다음 설정을 동일하게 구성한다.
+- MST Region Name
+- Revision Number
+- VLAN과 MST Instance의 매핑 정보
+
+3. 설정 중 하나라도 다르면 서로 다른 MST Region으로 인식한다.
+- Switch는 VLAN과 MST Instance의 매핑 정보를 기반으로 Configuration Digest를 생성하고, Region Name과 Revision Number를 함께 비교하여 같은 MST Region인지 확인한다.
+
+4. MST Instance에 매핑되지 않은 VLAN은 MSTI `0`에 포함된다.
+- MSTI `0`은 MST Region 내부에서 IST로 동작한다.
+
+5. 전체 CIST에서 CIST Root Bridge를 선출한다.
+
+6. 각 MST Region에서는 CIST Root Bridge까지 가장 좋은 경로를 가진 Switch가 CIST Regional Root Bridge가 된다.
+- CIST Regional Root Bridge는 해당 MST Region의 IST에서 Root Bridge로 동작한다.
+- CIST Root Bridge가 해당 MST Region 내부에 있으면 같은 Switch가 그 Region의 CIST Regional Root Bridge 역할도 한다.
+
+7. 각 MSTI에서는 MSTI Regional Root Bridge를 별도로 선출한다.
+- MSTI마다 서로 다른 Regional Root Bridge를 사용할 수 있다.
+
+8. MST Switch는 CIST 정보와 각 MSTI의 정보를 하나의 MST BPDU에 포함하여 전달한다.
+
+9. 다른 MST Region이나 Non-MSTP Switch와 연결되는 Port는 Boundary Port로 동작한다.
+
+10. 외부 Network에서는 하나의 MST Region을 하나의 논리적인 Switch처럼 인식한다.
+- MST Region 내부의 MSTI별 Topology는 외부에 직접 노출되지 않는다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
