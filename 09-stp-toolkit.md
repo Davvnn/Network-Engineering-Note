@@ -84,9 +84,9 @@ BackboneFast는 STP Domain에 속한 모든 Switch에 설정해야 한다. RSTP�
 
 1\. 인터페이스에 BPDU Filter를 직접 설정하면 해당 Port는 BPDU를 송수신하지 않는다.
 
-2\. BPDU Filter 설정이 들어간 Switch와 연결된 Switch는 서로의 BPDU를 확인할 수 없기 때문에 STP Topology를 정상적으로 계산할 수 없다.
+2\. BPDU Filter가 설정된 Port로 연결된 Switch들은 서로의 BPDU를 확인할 수 없기 때문에 STP Topology를 정상적으로 계산할 수 없다.
 
-3\. 물리적인 이중화 Link가 구성되어 있으면 STP가 Loop를 감지하지 못하여 Layer 2 Loop가 발생할 수 있다.
+3\. 해당 Switch에 이중화 Link가 구성되어 있으면 STP가 Loop를 감지하지 못하여 Layer 2 Loop가 발생할 수 있다.
 
 ### Root Guard 동작 과정
 
