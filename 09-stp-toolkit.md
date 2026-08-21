@@ -143,3 +143,52 @@ BackboneFast는 STP Domain에 속한 모든 Switch에 설정해야 한다. RSTP�
 6\. Response를 수신한 Switch는 기존 Root Bridge가 정상적으로 동작하고 있음을 확인한다.
 
 7\. Switch는 Max Age Timer를 기다리지 않고 Port를 Listening과 Learning 상태로 전환해 복구 시간을 단축한다.
+
+## 예시 및 구성도
+
+### PortFast와 BPDU Guard
+
+![](images/09-portfast-bpduguard.png)
+
+1\. SW2와 SW3의 `Gi0/24`는 PC가 연결된 Access Port이며 PortFast와 BPDU Guard가 설정되어 있다.
+
+2\. PC1과 PC2가 연결되면 `Gi0/24`는 STP의 Listening/Learning 과정을 기다리지 않고 즉시 Forwarding 상태로 전환된다.
+
+3\. 만약 PC1 대신 다른 Switch를 SW2의 `Gi0/24`에 연결하면 해당 Port에서 BPDU가 수신된다.
+
+4\. BPDU Guard는 BPDU를 감지하면 SW2의 `Gi0/24`를 `Err-Disabled` 상태로 전환하여 Traffic을 차단한다.
+
+5\. 이를 통해 사용자가 임의로 연결한 Switch가 SW1, SW2, SW3의 STP Topology에 참여하거나 Layer 2 Loop를 발생시키는 것을 방지한다.
+
+### Root Guard
+
+![](images/09-root-loop.png)
+
+SW1은 Distribution Switch 역할을 하고, SW2와 SW3는 Access Switch 역할을 한다.
+
+SW2의 `Gi0/24`는 Designated Port이고, SW3의 `Gi0/24`는 Alternate Port로 동작한다.
+
+1\. SW1에서 SW2 방향의 `Gi0/1`에 Root Guard를 설정한다.
+
+2\. 주니어 네트워크 관리자가 작업 중 실수로 SW2의 Priority 값을 SW1보다 낮게 설정한다.
+
+3\. SW2는 자신이 더 우선순위가 높은 Root Bridge라고 판단하여 SW1 방향으로 Superior BPDU를 전송한다.
+
+4\. 하지만 SW1의 `Gi0/1`에는 Root Guard가 설정되어 있으므로 Superior BPDU를 수신하면 해당 Port를 `Root-Inconsistent` 상태로 전환한다.
+
+5\. 관리자는 `Root-Inconsistent` 상태를 해결하기 위해 SW2에 접속하여 Priority 값을 SW1보다 높게 수정한다.
+
+6\. Superior BPDU 전송이 중단되면 SW1의 `Gi0/1`은 `Root-Inconsistent` 상태에서 자동으로 복구된다.
+
+### Loop Guard
+
+1\. SW3의 `Gi0/24`는 정상적인 상태에서 SW2의 `Gi0/24`가 전송하는 BPDU를 계속 수신하며 Blocking 상태를 유지한다.
+
+2\. SW2의 단방향 Link 장애로 SW2의 `Gi0/24`에서 BPDU를 전송하지 못하면 SW3의 `Gi0/24`는 기존 BPDU 정보가 만료된 후 해당 Port가 Forwarding 상태로 전환될 수 있다.
+
+3\. 하지만 SW3의 `Gi0/24`에 Loop Guard가 설정되어 있으면 BPDU 수신이 중단될 때 해당 Port를 `Loop-Inconsistent` 상태로 전환한다.
+
+4\. 이를 통해 Alternate Port가 잘못 Forwarding 상태로 전환되어 Layer 2 Loop가 발생하는 것을 방지한다.
+
+
+
