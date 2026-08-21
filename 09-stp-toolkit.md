@@ -64,4 +64,82 @@ Root Bridge로 가는 경로가 확인되면 해당 Switch는 Max Age Timer를 �
 
 BackboneFast는 STP Domain에 속한 모든 Switch에 설정해야 한다. RSTP에는 BackboneFast와 유사한 빠른 수렴 기능이 기본적으로 포함되어 있다.
 
+## 동작 원리
 
+### PortFast와 BPDU Guard 동작 과정
+
+1\. 단말이 연결된 Access Port에 PortFast와 BPDU Guard를 설정한다.
+
+2\. 단말이 연결되면 해당 Port는 Listening과 Learning 상태를 기다리지 않고 즉시 Forwarding 상태로 전환된다.
+
+3\. 단말들은 BPDU를 전송하지 않으므로 Port는 계속 Forwarding 상태로 동작한다.
+
+4\. 만약 사용자가 해당 단말을 제거하고 Switch를 연결해서 BPDU가 수신되면 해당 Port에서 BPDU Guard가 동작한다.
+
+5\. BPDU Guard는 해당 Port를 `Err-Disabled` 상태로 전환하여 Traffic을 차단한다.
+
+6\. 관리자는 연결 상태와 Loop 원인을 확인한 후 Port를 수동으로 복구한다.
+
+### BPDU Filter 동작 과정
+
+1\. 인터페이스에 BPDU Filter를 직접 설정하면 해당 Port는 BPDU를 송수신하지 않는다.
+
+2\. BPDU Filter 설정이 들어간 Switch와 연결된 Switch는 서로의 BPDU를 확인할 수 없기 때문에 STP Topology를 정상적으로 계산할 수 없다.
+
+3\. 물리적인 이중화 Link가 구성되어 있으면 STP가 Loop를 감지하지 못하여 Layer 2 Loop가 발생할 수 있다.
+
+### Root Guard 동작 과정
+
+1\. 백본 스위치의 하위 방향 Port에 Root Guard를 설정한다.
+
+2\. 하위 Switch가 현재 Root Bridge보다 낮은 Bridge ID를 가진 Superior BPDU를 전송한다.
+
+3\. Root Guard가 Superior BPDU를 감지하고 해당 Port를 `Root-Inconsistent` 상태로 전환한다.
+
+4\. 해당 Port는 BPDU를 확인하지만 일반 Frame은 전달하지 않는다.
+
+5\. 하위 Switch가 Superior BPDU 전송을 중단하면 Port는 자동으로 정상 상태로 복구된다.
+
+6\. 기존에 지정한 Root Bridge가 계속 STP Topology의 Root Bridge로 동작한다.
+
+### Loop Guard 동작 과정
+
+1\. Alternate Port는 이웃 Switch로부터 BPDU를 계속 수신한다.
+
+2\. Alternate Port와 연결된 이웃 Switch에 문제가 생겨 일반 Frame은 전달되지만 BPDU는 전달되지 않는다.
+
+3\. Loop Guard가 없다면 Max Age Timer가 지난 후 해당 Alternate Port는 Designated Port로 변경되어 Forwarding 상태로 전환될 수 있다.
+
+4\. 하지만 해당 Port에 Loop Guard가 설정되어 있으므로 BPDU 수신이 중단되면 Port는 `Loop-Inconsistent` 상태로 전환된다.
+
+5\. 해당 Port는 Forwarding 상태로 전환되지 않으므로 Layer 2 Loop가 발생하지 않는다.
+
+6\. BPDU가 다시 수신되면 Port는 자동으로 정상 상태로 복구된다.
+
+### UplinkFast 동작 과정
+
+1\. Access Switch는 Root Bridge 방향의 Port를 Root Port로 사용한다.
+
+2\. 해당 스위치에 이중화된 다른 Uplink는 Loop 방지를 위해 Blocking 상태로 대기한다.
+
+3\. Access Switch의 Root Port에 직접적인 Link 장애가 발생하면, UplinkFast는 Blocking 상태의 Backup Port를 새로운 Root Port로 선택한다.
+
+4\. Backup Port는 Listening과 Learning 상태를 기다리지 않고 즉시 Forwarding 상태로 전환된다.
+
+5\. Access Switch의 Traffic은 새로운 Root Port를 통해 Root Bridge 방향으로 전달된다.
+
+### BackboneFast 동작 과정
+
+1\. 다른 Switch에서 Link 장애가 발생하지만 현재 Switch에 직접 연결된 Link의 장애가 아니므로 물리적으로 감지할 수 없다.
+
+2\. 장애가 일어나 Root Bridge로 가는 경로를 잃어버린 Neighbor Switch는 자신을 Root Bridge로 표시한 Inferior BPDU를 전송한다.
+
+3\. Inferior BPDU를 수신한 다른 Switch는 Network의 간접적인 Link 장애를 감지한다.
+
+4\. 해당 Switch는 R`oot Link Query Request`를 전송하여 기존 Root Bridge로 가는 경로가 남아 있는지 확인한다.
+
+5\. Root Bridge는 `Root Link Query Response`를 전송한다.
+
+6\. Response를 수신한 Switch는 기존 Root Bridge가 정상적으로 동작하고 있음을 확인한다.
+
+7\. Switch는 Max Age Timer를 기다리지 않고 Port를 Listening과 Learning 상태로 전환해 복구 시간을 단축한다.
