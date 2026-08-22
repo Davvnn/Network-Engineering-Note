@@ -105,3 +105,131 @@ Load Balancing 방식은 Switch Model과 IOS Version에 따라 지원되는 방�
 예를 들어 Source/Destination IP Address를 기준으로 Load Balancing하는 경우 특정 Source와 Destination 사이의 Traffic은 동일한 Member Port를 사용할 수 있다.
 
 따라서 1Gbps Link 4개를 EtherChannel로 구성했다고 해서 하나의 TCP Session이 반드시 4Gbps의 대역폭을 사용하는 것은 아니다.
+
+## 동작 원리
+
+### LACP EtherChannel 동작 과정
+
+1\. SW1의 `Gi0/1`, `Gi0/2`와 SW2의 `Gi0/1`, `Gi0/2`를 LACP Active Mode로 설정한다.
+- 될 수 있으면 양쪽 Switch의 Interface 번호를 맞추는 것이 관리 측면에서 용이하다.
+
+2\. SW1과 SW2는 서로 LACP 메시지를 교환한다.
+
+3\. LACP가 각 Member Port의 정보와 설정을 확인하고 정상적으로 Negotiation이 완료되면 `Gi0/1`과 `Gi0/2`가 하나의 `Port-channel1`로 묶인다.
+
+4\. STP는 더 이상 `Gi0/1`과 `Gi0/2`를 각각의 Link로 처리하지 않고 `Port-channel1`을 하나의 논리적인 Link로 처리한다.
+
+5\. Traffic은 설정된 Load Balancing 방식에 따라 Member Port로 분산된다.
+
+6\. 만약 `Gi0/1`의 Link에 장애가 발생하면 해당 Port는 EtherChannel에서 제외된다.
+
+7\. `Gi0/2`가 계속 Port-Channel의 Member Port로 동작하기 때문에 Traffic은 중단되지 않고 나머지 Link를 통해 전달된다.
+
+8\. 장애가 발생한 `Gi0/1`이 정상 상태로 복구되면 다시 LACP Negotiation을 거친 후 EtherChannel의 Member Port로 참여한다.
+
+### LACP Active와 Passive 동작 과정
+
+1\. SW1의 Port는 `active` Mode로 설정하고 SW2의 Port는 `passive` Mode로 설정한다.
+
+2\. SW1은 LACP 메시지를 SW2로 먼저 전송한다.
+
+3\. SW2는 LACP 메시지를 수신하고 자신의 Port 설정을 확인 후 응답한다.
+
+4\. 양쪽 Port의 설정이 EtherChannel을 구성할 수 있는 조건을 만족하면 Port-Channel이 생성된다.
+
+5\. 만약 양쪽 Switch를 모두 `passive` Mode로 설정하면 어느 쪽도 먼저 LACP Negotiation을 시작하지 않는다.
+
+6\. 따라서 LACP EtherChannel이 정상적으로 구성되지 않는다.
+
+### Layer 3 EtherChannel 동작
+
+1\. 각 Member Port는 `no switchport`를 설정하여 Layer 3 Port로 사용한다.
+- Switch의 Interface는 기본적으로 Switchport로 동작하기 때문에, 해당 Port를 Routing에 사용할 수 있도록 Layer 3 Port로 변경해줘야 한다.
+
+2\. IP Address는 개별 Member Port에 설정하지 않고 `Port-channel1`에만 설정한다.
+
+3\. Routing Protocol이나 Static Route에서는 각각의 Member Port가 아니라 `Port-channel1`을 하나의 Layer 3 Interface로 사용한다.
+- 예를 들어 OSPF Neighbor를 형성하거나 Static Route의 Next-Hop 경로를 구성할 때 개별 Member Port가 아닌 `Port-channel1`을 사용한다.
+
+## 예시 및 구성도
+
+### Layer 2 EtherChannel
+
+한 회사의 Distribution Switch인 SW1과 Access Switch인 SW2 사이에는 여러 VLAN의 Traffic을 전달하기 위해 두 개의 Trunk Link가 연결되어 있다.
+
+SW1과 SW2 사이의 `Gi0/23`, `Gi0/24` 두 개의 Link가 각각 연결되어 있다.
+
+STP는 `Gi0/23`은 Forwarding 상태로 사용하고, `Gi0/24`는 Blocking 상태로 사용한다.
+
+따라서  `Gi0/23`만 Traffic을 전달하고 `Gi0/24`의 대역폭은 사용할 수 없었다.
+
+회사에 사용자와 Server가 증가하면서 Traffic이 많아졌고, 하나의 Link에 Traffic이 몰리면서 Queue에서 대기하거나 Drop되는 빈도가 증가하여 사용자들의 업무에 영향을 주기 시작했다.  
+
+관리자는 `Gi0/23`과 `Gi0/24`를 LACP EtherChannel로 구성하여 하나의 `Port-channel1`로 사용하려고 한다.
+
+![](images/10-etherchannel-l2.png)
+
+1\. SW1과 SW2에 가상의 `Port-channel1` Interface를 생성한다.
+- `Port-channel1`을 미리 생성하지 않아도 Member Port에 `channel-group 1 mode active`를 설정하면 `Port-channel1`이 자동으로 생성된다.
+
+2\. 생성된 `Port-channel1`을 Trunk Port로 설정한다.
+
+3\. SW1과 SW2의 `Gi0/23`, `Gi0/24`에 LACP Active Mode를 설정하고 `channel-group 1`에 묶는다.
+
+4\. SW1과 SW2는 LACP 메시지를 교환하고, 각 Member Port의 설정이 EtherChannel 구성 조건에 맞는지 확인한다.
+
+5\. 정상적으로 Negotiation이 완료되면 `Gi0/23`과 `Gi0/24`가 `Port-channel1`의 Member Port로 동작한다.
+
+6\. STP는 더 이상 `Gi0/23`과 `Gi0/24`를 각각의 Layer 2 Link로 보지 않고 `Port-channel1`을 하나의 논리적인 Link로 인식한다.
+
+7\. 따라서 기존에 Blocking 상태였던 `Gi0/24`도 EtherChannel의 Member Port로 사용되며 두 Link를 모두 사용할 수 있다.
+
+8\. VLAN Traffic은 `Port-channel1`을 통해 전달되고 실제 Frame은 Load Balancing 결과에 따라 `Gi0/23` 또는 `Gi0/24`를 통해 전송된다.
+
+9\. 만약 `Gi0/23`에 장애가 발생하면 해당 Interface는 EtherChannel에서 제외된다.
+
+10\. `Gi0/24`가 계속 정상적으로 동작하고 있기 때문에 `Port-channel1`은 Up 상태를 유지하며 Traffic을 계속 전달한다.
+
+11\. `Gi0/23`이 복구되면 다시 LACP Negotiation을 거치고 `Port-channel1`에 참여한다.
+
+### Layer 3 EtherChannel
+
+본사의 SW1과 지사의 SW2 사이에는 Layer 3 Routing Link가 구성되어 있다. 
+
+기존에는 하나의 Link만 사용하고 있었지만 두 지점 사이의 Traffic이 증가하면서 대역폭을 늘리고, 하나의 Link에 장애가 발생하더라도 통신을 유지할 수 있도록 이중화 작업을 하려고 한다.
+
+관리자는 SW1과 SW2 사이의 `Gi0/1`, `Gi0/2`를 Layer 3 EtherChannel로 구성하여 하나의 `Port-channel1`을 Routing Interface로 사용한다.
+
+![](images/10-etherchannel-l3.png)
+
+1\. 기존에 SW1과 SW2의 `Gi0/24`를 Layer 3 Routing Link로 사용하고 있으며 IP Address가 설정되어 있다.
+- SW1 `Gi0/24`: `10.0.12.1/30`
+- SW2 `Gi0/24`: `10.0.12.2/30`
+
+2\. EtherChannel을 구성하기 위해 기존 `Gi0/24`의 IP Address를 제거하고, `Gi0/23`과 `Gi0/24`에 `no switchport`를 설정하여 Layer 3 Port로 변경한다.
+
+3\. SW1과 SW2에 `Port-channel1`을 구성하고 `Gi0/23`, `Gi0/24`에 LACP Active Mode를 설정하여 `channel-group 1`에 묶는다.
+
+4\. 기존에 `Gi0/24`에서 사용하던 IP Address를 `Port-channel1`에 동일하게 설정한다.
+- SW1 `Port-channel1`: `10.0.12.1/30`
+- SW2 `Port-channel1`: `10.0.12.2/30`
+
+5\. SW1과 SW2는 LACP 메시지를 교환하고 각 Member Port의 설정이 EtherChannel 구성 조건에 맞는지 확인한다.
+
+6\. 정상적으로 Negotiation이 완료되면 `Gi0/23`과 `Gi0/24`가 `Port-channel1`의 Member Port로 동작한다.
+
+7\. Routing Protocol이나 Static Route에서는 기존 `Gi0/24`가 아니라 `Port-channel1`을 하나의 Layer 3 Interface로 사용한다.
+- 예를 들어 OSPF를 사용한다면 `Port-channel1`을 통해 OSPF Neighbor를 형성한다.
+
+8\. Traffic은 Load Balancing 결과에 따라 `Gi0/23` 또는 `Gi0/24`를 통해 전달된다.
+
+9\. 만약 `Gi0/23`에 장애가 발생하면 해당 Interface는 EtherChannel에서 제외된다.
+
+10\. `Gi0/24`가 정상적으로 동작하고 있기 때문에 `Port-channel1`은 Up 상태를 유지하며 Traffic을 계속 전달한다.
+
+11\. `Gi0/23`이 복구되면 다시 LACP Negotiation을 거치고 `Port-channel1`의 Member Port로 참여한다.
+
+
+
+
+
