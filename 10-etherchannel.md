@@ -106,6 +106,8 @@ Load Balancing 방식은 Switch Model과 IOS Version에 따라 지원되는 방�
 
 따라서 1Gbps Link 4개를 EtherChannel로 구성했다고 해서 하나의 TCP Session이 반드시 4Gbps의 대역폭을 사용하는 것은 아니다.
 
+---
+
 ## 동작 원리
 
 ### LACP EtherChannel 동작 과정
@@ -150,6 +152,8 @@ Load Balancing 방식은 Switch Model과 IOS Version에 따라 지원되는 방�
 
 3\. Routing Protocol이나 Static Route에서는 각각의 Member Port가 아니라 `Port-channel1`을 하나의 Layer 3 Interface로 사용한다.
 - 예를 들어 OSPF Neighbor를 형성하거나 Static Route의 Next-Hop 경로를 구성할 때 개별 Member Port가 아닌 `Port-channel1`을 사용한다.
+
+---
 
 ## 예시 및 구성도
 
@@ -229,7 +233,179 @@ STP는 `Gi0/23`은 Forwarding 상태로 사용하고, `Gi0/24`는 Blocking 상�
 
 11\. `Gi0/23`이 복구되면 다시 LACP Negotiation을 거치고 `Port-channel1`의 Member Port로 참여한다.
 
+---
 
+## 명령어
 
+### Layer 2 LACP EtherChannel 설정
 
+SW1과 SW2의 `Gi0/23`, `Gi0/24`를 LACP Active Mode로 설정하여 `Port-channel1`에 묶는다.
+```
+SW1(config)# interface range gi0/23 - 24
+SW1(config-if-range)# channel-group 1 mode active
+```
 
+SW2에도 동일하게 설정한다.
+```
+SW2(config)# interface range gi0/23 - 24
+SW2(config-if-range)# channel-group 1 mode active
+```
+`channel-group 1`을 설정하면 `Port-channel1` Interface가 자동으로 생성된다.
+
+### Port-Channel Trunk 설정
+
+생성된 `Port-channel1`을 Trunk Port로 설정한다.
+```
+SW1(config)# interface port-channel 1
+SW1(config-if)# switchport mode trunk
+```
+
+SW2에도 동일하게 설정한다.
+```
+SW2(config)# interface port-channel 1
+SW2(config-if)# switchport mode trunk
+```
+
+Trunk로 전달할 VLAN을 제한하려면 `Port-channel1`에 Allowed VLAN을 설정한다.
+```
+SW1(config)# interface port-channel 1
+SW1(config-if)# switchport trunk allowed vlan 10,20,30
+```
+
+SW2에도 동일하게 설정한다.
+```
+SW2(config)# interface port-channel 1
+SW2(config-if)# switchport trunk allowed vlan 10,20,30
+```
+### LACP Active / Passive 설정
+
+SW1을 Active Mode로 설정한다.
+```
+SW1(config)# interface range gi0/1 - 2
+SW1(config-if-range)# channel-group 1 mode active
+```
+
+SW2를 Passive Mode로 설정한다.
+```
+SW2(config)# interface range gi0/1 - 2
+SW2(config-if-range)# channel-group 1 mode passive
+```
+
+Active와 Passive 조합이므로 LACP EtherChannel을 구성할 수 있다.
+
+### Layer 3 LACP EtherChannel 설정
+
+Member Port를 Routed Port로 변경한다.
+```
+SW1(config)# interface range gi0/1 - 2
+SW1(config-if-range)# no switchport
+SW1(config-if-range)# channel-group 1 mode active
+```
+
+Port-Channel Interface에 IP Address를 설정한다.
+```
+SW1(config)# interface port-channel 1
+SW1(config-if)# no switchport
+SW1(config-if)# ip address 10.0.12.1 255.255.255.252
+SW1(config-if)# no shutdown
+```
+
+### EtherChannel 상태 확인
+
+EtherChannel Group, Port-Channel 상태, Member Port등의 상태를 확인한다.
+```
+SW1# show etherchannel summary
+```
+
+EtherChannel Group과 Member Port의 상세 정보를 확인한다.
+```
+SW1# show etherchannel 1 detail
+```
+
+상대방 Switch의 LACP 정보와 연결된 Port 정보를 확인한다.
+```
+SW1# show lacp neighbor
+```
+
+`Port-channel1`의 상태와 Traffic 정보를 확인한다.
+```
+SW1# show interfaces port-channel 1
+```
+
+현재 EtherChannel에서 사용 중인 Load Balancing 방식을 확인한다.
+```
+SW1# show etherchannel load-balance
+```
+
+Source/Destination IP Address를 기준으로 Load Balancing하도록 설정한다.
+```
+SW1(config)# port-channel load-balance src-dst-ip
+```
+
+---
+
+## Troubleshooting
+
+### EtherChannel이 정상적으로 구성되지 않는 경우
+
+1\. EtherChannel이 정상적으로 구성되지 않으면 Port-Channel과 Member Port 상태를 확인한다.
+```
+SW1# show etherchannel summary
+SW1# show interfaces status
+```
+
+2\. Member Port가 정상적으로 `P` 상태로 Port-Channel에 포함되어 있는지 확인한다.
+```
+SW1# show etherchannel summary
+```
+
+3\. LACP를 사용하는 경우 양쪽 Switch의 LACP Mode가 올바르게 설정되어 있는지 확인한다.
+- Active + Active: 정상
+- Active + Passive: 정상
+- Passive + Passive: 구성되지 않음
+
+4\. 양쪽 Switch의 Member Port 설정이 동일한지 확인한다.
+```
+SW1# show running-config interface gi0/1
+SW1# show running-config interface gi0/2
+```
+
+5\. Layer 2 EtherChannel이라면 Access/Trunk Mode, VLAN, Native VLAN 및 Allowed VLAN 설정이 일치하는지 확인한다.
+
+6\. Member Port의 Speed와 Duplex 설정이 서로 일치하는지 확인한다.
+
+7\. LACP Neighbor가 정상적으로 확인되는지 확인한다.
+```
+SW1# show lacp neighbor
+```
+
+---
+
+## 실무 질문
+
+EtherChannel을 사용하는 이유는 무엇인가?
+- 여러 개의 물리적인 Link를 하나의 논리적인 Link로 묶어 대역폭을 증가시키고 Link 이중화를 제공하기 위해 사용한다.
+
+EtherChannel과 Port-Channel의 차이는 무엇인가?
+- EtherChannel은 여러 개의 물리적인 Link를 하나로 묶는 기술이고, Port-Channel은 EtherChannel로 생성되는 논리적인 Interface이다.
+
+LACP Active와 Passive의 차이는 무엇인가?
+- Active는 LACP Negotiation을 먼저 시작하고, Passive는 상대방으로부터 LACP 메시지를 수신하면 응답한다.
+- Passive와 Passive 조합에서는 EtherChannel이 구성되지 않는다.
+
+`mode on`은 무엇이며 언제 사용하는가?
+- `mode on`은 LACP나 PAgP Negotiation 없이 EtherChannel을 강제로 구성하는 Static EtherChannel 방식이다.
+- 주로 LACP를 지원하지 않는 장비와 연결할 때 사용한다.
+
+EtherChannel Member Port의 설정은 왜 같아야 하는가?
+- 여러 Member Port가 하나의 Port-Channel로 묶이기 위해 Speed, Duplex, Layer 2/3 Mode 등의 기본 설정이 서로 호환되어야 한다.
+- Trunk, VLAN 등의 설정은 EtherChannel이 구성된 후 `Port-channel` Interface에 설정하여 관리할 수 있다.
+
+EtherChannel을 구성하면 STP는 Member Port를 어떻게 처리하는가?
+- STP는 각각의 Member Port를 별도의 Link로 보지 않고 Port-Channel 전체를 하나의 논리적인 Link로 처리한다.
+
+EtherChannel에서 Member Port 하나가 Down되면 어떻게 되는가?
+- 남아 있는 Member Port가 정상이라면 Port-Channel은 Up 상태를 유지하고 나머지 Link를 통해 Traffic을 계속 전달한다.
+
+EtherChannel이 정상적으로 구성되지 않을 때 무엇을 확인하는가?
+- Port-Channel과 Member Port 상태를 확인하고, LACP Mode와 Member Port의 Trunk, VLAN, Speed, Duplex 등의 설정이 일치하는지 확인한다.
