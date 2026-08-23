@@ -17,55 +17,57 @@
 ### Switching
 - VLAN / Access / Trunk / Native VLAN
 - STP / RSTP / MSTP
-- PortFast / BPDU Guard / Root Guard / Loop Guard
+- STP Toolkit - PortFast / BPDU Guard / BPDU Filter / Root Guard / Loop Guard / UplinkFast / BackboneFast
 - EtherChannel / LACP
-- SVI / Routed Port / Inter-VLAN Routing
+- SVI / Inter-VLAN Routing
 
 ### Routing
 - Static Route / Default Route / Floating Static
 - Routing Table / AD / Metric / Longest Prefix Match
 - OSPF
 - EIGRP
-- BGP
+- BGP 기본
 - Route Redistribution
-- Route Summarization
 - Prefix-List / Route-Map / Route Filtering
 - PBR
 - VRF / VRF-Lite / Route Leaking
 
 ### Network Services
-
 - DHCP / DHCP Relay
 - DNS
 - NAT / PAT
 - NTP
+
+### High Availability
+- HSRP / VRRP
+- IP SLA / Object Tracking
+
+### Network Management and Monitoring
 - SNMP
 - Syslog
-- SSH
-- AAA / RADIUS / TACACS+
+- NetFlow / IPFIX
+- SSH / Telnet
+- CDP / LLDP
+- SPAN / RSPAN
 
-### Security
+### Security and Access Control
 - ACL
+- AAA / RADIUS / TACACS+
+- 802.1X / NAC
 - Port Security
 - DHCP Snooping / DAI / IP Source Guard
+
+### Tunneling and VPN
 - GRE Tunnel
 - IPsec / Site-to-Site VPN
 
 ### Advanced Networking
 - MTU / MSS / Fragmentation / PMTUD
-- QoS
-- Multicast / IGMP / PIM
-- IPv6
-- CDP / LLDP
-- SPAN / RSPAN / Wireshark
-- Stack / VSS / StackWise Virtual
-- SSO / NSF / Graceful Restart
+- QoS 기본
+- Multicast / IGMP / PIM 기본
+- IPv6 기본
+- vPC
 - CEF / FIB / Adjacency Table
-- CAM / TCAM
 - Control Plane / Data Plane / Management Plane
+- VXLAN / EVPN
 - MPLS
-
-### Troubleshooting
-- Interface Error / CRC / Drop / Duplex
-- Latency / Jitter / Packet Loss
-- Network Troubleshooting
