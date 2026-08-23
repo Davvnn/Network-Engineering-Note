@@ -49,3 +49,49 @@ Router-on-a-Stick은 Layer 3 Switch가 사용되기 전에 사용하던 Inter-VL
 하지만 Layer 3 Switch가 없고 Layer 2 Switch와 Router만 사용하는 SOHO와 같은 소규모 Network 환경에서는 사용할 수 있다.
 
 ---
+
+## 동작 원리
+
+### SVI를 이용한 Inter-VLAN Routing
+- PC1: `192.168.10.10/24`
+- PC1 Default Gateway (VLAN 10): `192.168.10.1`
+- Server: `192.168.20.10/24`
+- Server Default Gateway (VLAN 20): `192.168.20.1`
+
+1\. PC1은 목적지 `192.168.20.10`이 자신의 Network에 없다는 것을 확인한다.
+
+2\. PC1은 Packet을 Default Gateway인 VLAN 10 SVI로 전송하기 위해 SVI의 MAC Address를 ARP로 확인한다.
+- SVI를 생성하면 Switch가 해당 SVI에 MAC Address를 할당하며, Vendor와 장비에 따라 여러 SVI가 같은 MAC Address를 사용할 수 있다. 하지만 ARP는 VLAN별로 따로 동작하기 때문에 같은 MAC Address를 사용해도 문제가 발생하지 않는다.
+
+3\. PC1은 Destination MAC Address를 VLAN 10 SVI의 MAC Address로 설정하여 Frame을 전송한다.
+
+4\. Layer 3 Switch는 VLAN 10 SVI로 전달된 Frame의 Layer 2 Header를 제거하고 Destination IP Address를 확인한다.
+
+5\. Routing Table에서 `192.168.20.0/24` Network가 VLAN 20 SVI에 연결되어 있는 것을 확인한다.
+
+6\. Layer 3 Switch는 ARP Table에서 Server의 MAC Address를 확인한다.
+
+7\. Layer 3 Switch는 Source MAC Address를 VLAN 20 SVI의 MAC Address로, Destination MAC Address를 Server의 MAC Address로 설정하여 새로운 Frame을 생성한다.
+
+8\. 새로운 Frame을 VLAN 20에 속한 Server로 전달한다.
+
+9\. Server가 응답할 때도 Default Gateway인 VLAN 20 SVI로 Packet을 전송하고 Layer 3 Switch가 VLAN 10으로 Routing한다.
+
+Routing 과정에서 Source IP Address와 Destination IP Address는 유지되지만 Source MAC Address와 Destination MAC Address는 변경된다.
+
+### Router-on-a-Stick 동작
+
+1\. PC1은 다른 VLAN에 있는 목적지로 Packet을 전송하기 위해 자신의 Default Gateway로 Frame을 전송한다.
+
+2\. Switch는 Router 방향의 Trunk Port로 Frame을 전달하면서 VLAN Tag를 추가한다.
+
+3\. Router의 Subinterface는 Frame을 수신하고 Routing Table에서 목적지 Network를 확인한다.
+
+4\. Router는 목적지 VLAN Tag가 포함된 새로운 Frame을 생성하여 동일한 Physical Interface로 다시 전송한다.
+
+4\. Router는 목적지 Network에 연결된 Subinterface를 선택하고, 해당 Subinterface의 설정에 따라 VLAN Tag를 추가하여 동일한 Physical Interface로 Frame을 전송한다.
+
+5\. Switch는 VLAN Tag를 확인하여 목적지 VLAN으로 Frame을 전달하고, Access Port에서 해당 Frame의 VLAN Tag를 제거한 후 Untagged 형식으로 목적지 단말로 전송한다.
+
+---
+
