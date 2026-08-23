@@ -270,3 +270,64 @@ DSW1# show interfaces vlan 10
 ```
 ---
 
+## Troubleshooting
+
+### 서로 다른 VLAN에 속한 단말이 통신할 수 없는 경우
+
+1. 단말의 IP Address, Subnet Mask 및 Default Gateway를 확인한다.
+
+2. 단말에서 Default Gateway로 Ping을 전송한다.
+```
+PC1> ping 192.168.10.1
+```
+
+3. 단말이 연결된 Access Port의 상태와 VLAN 설정을 확인한다.
+```
+DSW1# show running-config interface gigabitEthernet0/1
+DSW1# show interfaces status
+DSW1# show vlan brief
+```
+
+4. SVI의 IP Address와 Interface 상태를 확인한다.
+```
+DSW1# show ip interface brief
+```
+
+5. SVI가 Down 상태라면 해당 VLAN이 Switch의 VLAN Database에 생성되어 있는지 확인한다.
+```
+DSW1# show vlan brief
+```
+
+6. DSW1에서 `ip routing`이 활성화되어 있고, 각 VLAN의 Network가 Connected Route로 등록되어 있는지 확인한다.
+```
+DSW1# show ip route connected
+```
+
+7. Trunk를 사용하는 경우 해당 VLAN이 Allowed VLAN에 포함되어 있는지 확인한다.
+```
+DSW1# show interfaces trunk
+```
+
+8. SVI에 적용된 ACL이 Traffic을 차단하고 있지 않은지 확인한다.
+```
+DSW1# show ip interface vlan 10
+DSW1# show access-lists
+```
+--- 
+
+## 실무 질문
+
+SVI란 무엇인가?
+- SVI는 VLAN을 Layer 3 Interface로 사용하기 위해 생성하는 논리적인 Interface이다.
+
+Layer 2 Switch와 Layer 3 Switch에서 SVI는 어떻게 사용하는가?
+- Layer 2 Switch에서는 관리용으로 사용하고, Layer 3 Switch에서는 Default Gateway와 Inter-VLAN Routing에 사용한다.
+
+Inter-VLAN Routing이 필요한 이유는 무엇인가?
+- 각 VLAN은 서로 다른 Broadcast Domain이므로 VLAN 사이의 통신에는 Layer 3 Routing이 필요하다.
+
+Layer 3 Switch에서 Inter-VLAN Routing을 사용하려면 무엇이 필요한가?
+- 각 VLAN에 SVI와 IP Address를 설정하고 `ip routing`을 활성화해야 한다.
+
+Router-on-a-Stick이란 무엇인가?
+- Router의 하나의 Physical Interface에 VLAN별 Subinterface를 생성하여 Inter-VLAN Routing을 하는 방식이다.
