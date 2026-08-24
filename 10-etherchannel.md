@@ -381,7 +381,7 @@ SW1# show lacp neighbor
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 EtherChannel을 사용하는 이유는 무엇인가?
 - 여러 개의 물리적인 Link를 하나의 논리적인 Link로 묶어 대역폭을 증가시키고 Link 이중화를 제공하기 위해 사용한다.
