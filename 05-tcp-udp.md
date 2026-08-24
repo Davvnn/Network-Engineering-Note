@@ -182,7 +182,7 @@ Cisco 장비에서 사용 중인 UDP Socket과 Port 정보를 확인한다.
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 TCP와 UDP는 어떤 역할을 하는가?
 - Transport Layer에서 Port Number를 사용하여 출발지 Application의 Data를 목적지 장비의 Application까지 전달한다.
