@@ -416,7 +416,7 @@ Static Route의 기본 Administrative Distance는 얼마인가?
 - Static Route의 기본 Administrative Distance는 `1`이다.
 
 Default Route란 무엇인가?
-- Routing Table에 목적지 Network가 없을 때 사용하는 경로이다.
+- Routing Table에 목적지 Network에 대한 구체적인 route가 없을 때 사용하는 경로이다.
 
 Floating Static Route란 무엇인가?
 - Primary Route보다 높은 AD를 설정하여 주 경로에 장애가 발생했을 때 사용하는 Backup Static Route이다.
