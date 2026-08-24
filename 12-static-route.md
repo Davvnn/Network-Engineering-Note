@@ -259,6 +259,95 @@ Interface는 Up 상태이지만 ISP 내부의 원격 구간에 장애가 발생�
 
 실제 환경에서는 PC가 외부 Network와 통신하려면 Packet이 R1에서 ISP로 전달되기 전에 PC의 Private Source IP Address를 ISP로부터 할당받은 Public IP Address로 NAT 또는 PAT해야 한다.
 
+---
 
+## 명령어
+
+### Interface IP Address 설정
+
+R1과 R2의 Interface에 IP를 할당한다.
+
+``` 
+R1(config)# interface gigabitEthernet0/0
+R1(config-if)# ip address 192.168.10.1 255.255.255.0
+R1(config-if)# no shutdown
+
+R1(config)# interface gigabitEthernet0/1
+R1(config-if)# ip address 10.0.12.1 255.255.255.252
+R1(config-if)# no shutdown
+
+R2(config)# interface gigabitEthernet0/0
+R2(config-if)# ip address 10.0.12.2 255.255.255.252
+R2(config-if)# no shutdown
+
+R2(config)# interface gigabitEthernet0/1
+R2(config-if)# ip address 192.168.20.1 255.255.255.0
+R2(config-if)# no shutdown
+```
+
+### Next-Hop Static Route 설정
+
+R1에 목적지로 가는 Static Route를 설정한다.
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.12.2
+```
+
+R2에는 Return Route를 설정한다.
+``` 
+R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
+```
+
+### Exit Interface Static Route 설정
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 gigabitEthernet0/1
+```
+
+### Fully Specified Static Route 설정
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 gigabitEthernet0/1 10.0.12.2
+```
+
+### Default Route 설정
+
+Next-Hop IP Address를 사용하여 Default Route를 설정한다.
+``` 
+R1(config)# ip route 0.0.0.0 0.0.0.0 10.0.12.2
+```
+
+Exit Interface를 사용하여 Default Route를 설정한다.
+``` 
+R1(config)# ip route 0.0.0.0 0.0.0.0 gigabitEthernet0/1
+```
+
+### Floating Static Route 설정
+
+Primary Static Route를 설정한다.
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.12.2
+```
+
+AD가 `2`인 Floating Static Route를 설정한다.
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.13.2 2
+```
+
+### 상태 확인
+
+Routing Table을 확인한다.
+``` 
+R1# show ip route
+```
+
+Static Route만 확인한다.
+``` 
+R1# show ip route static
+```
+
+특정 목적지에 대한 Route를 확인한다.
+``` 
+R1# show ip route 192.168.20.0
+```
+
+---
 
 
