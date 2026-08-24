@@ -481,7 +481,7 @@ SW1# show spanning-tree mst configuration
 SW1# show spanning-tree mst
 ```
 
-## 실무 질문
+## 주요 질문
 
 STP를 사용하는 이유는 무엇인가?
 - Switch 간 이중화 Link에서 Layer 2 Loop가 발생하는 것을 방지하기 위해 사용한다.
