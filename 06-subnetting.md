@@ -255,7 +255,7 @@ R1# show ip protocols
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 Subnetting은 무엇인가?
 - 하나의 큰 Network를 여러 개의 작은 Subnet으로 나누는 방식이다.
