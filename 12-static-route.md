@@ -169,3 +169,96 @@ R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
 
 7\. R1은 응답 Packet을 Connected Network인 `192.168.10.0/24`의 PC1으로 전달한다.
 
+---
+
+## 예시 및 구성도
+
+### Static Route를 이용한 Network 연결
+
+회사에서 새로운 Server Farm을 구축하기 위해 Router와 Server를 새로 구매하여 Network를 구성하였다.
+
+사용자들이 Server를 사용하기 위해 Server Network에 접근해야 하지만, 아직 R1과 R2에 상대방 Network로 가는 Route가 설정되어 있지 않아 Server에 접근하지 못하고 있다.
+
+해당 경로는 단순하고 Network의 변화가 많지 않기 때문에 관리자는 Static Route를 구성하려고 한다.
+
+![](images/12-static-route.png)
+
+- R1: User Network
+- R2: Server Network
+- PC1: `192.168.10.10/24`
+- PC1 Default Gateway: `192.168.10.1`
+- R1 `Gi0/0`: `192.168.10.1/24`
+- R1 `Gi0/1`: `10.0.12.1/30`
+- R2 `Gi0/0`: `10.0.12.2/30`
+- R2 `Gi0/1`: `192.168.20.1/24`
+- Server: `192.168.20.10/24`
+- Server Default Gateway: `192.168.20.1`
+
+1\. R1에는 Server Network인 `192.168.20.0/24`로 가는 Static Route를 설정한다.
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.12.2
+```
+
+2\. R2에는 User Network인 `192.168.10.0/24`로 돌아가는 Static Route를 설정한다.
+``` 
+R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
+```
+
+3\. PC1이 Server로 Packet을 전송하면 R1은 Static Route를 확인하여 R2로 전달한다.
+
+4\. R2는 Packet을 Connected Network인 `192.168.20.0/24`로 전달한다.
+
+5\. Server는 응답 Packet을 Default Gateway인 R2로 전송한다.
+
+6\. R2는 Static Route를 확인하여 응답 Packet을 R1으로 전달한다.
+
+7\. R1은 응답 Packet을 Connected Network인 `192.168.10.0/24`의 PC1으로 전달한다.
+
+### Internet 회선 이중화
+
+회사는 Internet 회선을 이중화하기 위해 두 개의 ISP 회선을 사용하려고 한다.
+
+평상시에는 ISP1을 Primary Link로 사용하고, Primary Link에 장애가 발생하면 ISP2를 통해 Internet을 사용할 수 있도록 구성하려고 한다.
+
+관리자는 ISP1 방향으로 Default Route를 설정하고, ISP2 방향에는 더 높은 AD를 가진 Floating Static Default Route를 설정한다.
+
+![](images/12-default-floating.png)
+
+- Internal Network: `192.168.10.0/24`
+- R1 `Gi0/0`: `192.168.10.1/24`
+- R1 `Gi0/1`: `203.0.113.1/30`
+- ISP1 Next-Hop: `203.0.113.2/30`
+- R1 `Gi0/2`: `198.51.100.1/30`
+- ISP2 Next-Hop: `198.51.100.2/30`
+
+1\. R1에 ISP1을 Next-Hop으로 사용하는 Primary Default Route를 설정한다.
+``` 
+R1(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.2
+```
+
+2\. ISP2를 Next-Hop으로 사용하는 Floating Static Default Route에는 AD `200`을 설정한다.
+``` 
+R1(config)# ip route 0.0.0.0 0.0.0.0 198.51.100.2 2
+```
+
+3\. Primary Default Route의 AD가 `1`로 더 낮으므로 ISP1을 통한 경로가 Routing Table에 등록된다.
+
+4\. R1은 Routing Table에 목적지 Network에 대한 Route가 없으면 Packet을 Default Route에 설정된 ISP1으로 전달한다.
+
+5\. ISP1의 Primary Link에 장애가 발생하면 해당 Default Route가 Routing Table에서 제거된다.
+
+6\. AD가 `2`인 Floating Static Default Route가 Routing Table에 등록된다.
+
+7\. 이후 Internet으로 향하는 Traffic은 ISP2를 통해 전달된다.
+
+8\. ISP1의 Primary Link가 복구되면 AD가 낮은 Primary Default Route가 Routing Table에 다시 등록된다.
+
+9\. Floating Static Default Route는 Routing Table에서 제거되고 다시 Backup Route로 대기한다.
+
+Interface는 Up 상태이지만 ISP 내부의 원격 구간에 장애가 발생한 경우에는 Primary Default Route가 제거되지 않을 수 있다. 이러한 장애까지 감지하려면 IP SLA와 Object Tracking을 함께 사용해야 한다.
+- 실제 환경에서 Private IP Address를 사용하는 내부 단말이 Internet에 접근하려면 NAT 또는 PAT 설정도 필요하다.
+- PC가 외부 Network와 통신하려면 Packet이 R1에서 ISP로 전달되기 전에 PC의 Private Source IP Address를 ISP로부터 할당받은 Public IP Address로 NAT 또는 PAT해야 한다.
+
+
+
+
