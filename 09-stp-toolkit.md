@@ -320,7 +320,7 @@ SW1# show spanning-tree inconsistentports
 
 8\. 문제를 해결한 후 Port가 정상적인 STP 상태로 복구되었는지 확인한다.
 
-## 실무 질문
+## 주요 질문
 
 PortFast를 사용하는 이유는 무엇인가?
 - PC나 Server가 연결된 Port를 Listening과 Learning 상태를 기다리지 않고 즉시 Forwarding 상태로 전환하기 위해 사용한다. 단말이 연결된 Edge Port는 일반적으로 다른 Switch와 연결되지 않으므로 STP Convergence를 기다릴 필요가 없다.
