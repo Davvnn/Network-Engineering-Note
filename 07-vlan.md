@@ -212,7 +212,7 @@ SW2# show interfaces trunk
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 VLAN은 무엇인가?
 - VLAN은 하나의 물리적인 Switch를 논리적으로 여러 대의 Switch처럼 나누어, 하나의 물리적인 LAN을 여러 개의 논리적인 LAN으로 분리하는 방식이다.
