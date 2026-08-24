@@ -88,3 +88,84 @@ AD가 낮은 경로가 우선되므로 평상시에는 Primary Route가 Routing 
 
 ---
 
+## 동작 원리
+
+### Default Route 동작
+
+1\. Router가 Packet의 Destination IP Address를 확인한다.
+
+2\. Routing Table에서 목적지와 일치하는 Route를 확인한다.
+
+3\. 목적지에 해당하는 Route가 없으면 라우터는 패킷을 `0.0.0.0/0`으로 전달한다.
+
+4\. Router는 Default Route에 설정된 Next-Hop 또는 Exit Interface로 Packet을 전달한다.
+``` 
+S* 0.0.0.0/0 [1/0] via 10.0.12.2
+```
+목적지에 대한 구체적인 Route가 존재하면 Default Route보다 구체적인 Route가 우선된다.
+
+### Floating Static Route 동작
+
+1\. R1에는 목적지 Network로 가는 Primary Route와 Backup Route가 설정되어 있다.
+
+2\. Primary Route의 AD는 `1`이고 Backup Route의 AD는 `2`이다.
+
+3\. R1은 AD가 낮은 Primary Route를 Routing Table에 등록한다.
+
+4\. 평상시에는 Primary Route를 통해 Packet을 전달한다.
+
+5\. Primary Link가 장애로 Down되면 Primary Route는 Routing Table에서 제거된다.
+
+6\. R1은 다음로 AD가 높은 Floating Static Route를 Routing Table에 등록한다.
+
+7\. 이후 Packet은 Backup Link를 통해 전달된다.
+
+8\. Primary Link가 복구되면 AD가 더 낮은 Primary Route가 다시 Routing Table에 등록된다.
+
+9\. Floating Static Route는 Routing Table에서 제거되고 다시 Backup Route로 대기한다.
+
+---
+
+## 예시 및 구성도
+
+### Static Route를 이용한 Network 연결
+
+회사에서 새로운 Server Farm을 구축하기 위해 Router와 Server를 새로 구매하여 Network를 구성하였다.
+
+사용자들이 Server를 사용하기 위해 Server Network에 접근해야 하지만, 아직 R1과 R2에 상대방 Network로 가는 Route가 설정되어 있지 않아 Server에 접근하지 못하고 있다.
+
+해당 경로는 단순하고 Network의 변화가 많지 않기 때문에 관리자는 Static Route를 구성하려고 한다.
+
+![](images/12-static-route.png)
+
+- R1: User Network
+- R2: Server Network
+- PC1: `192.168.10.10/24`
+- PC1 Default Gateway: `192.168.10.1`
+- R1 `Gi0/0`: `192.168.10.1/24`
+- R1 `Gi0/1`: `10.0.12.1/30`
+- R2 `Gi0/0`: `10.0.12.2/30`
+- R2 `Gi0/1`: `192.168.20.1/24`
+- Server: `192.168.20.10/24`
+- Server Default Gateway: `192.168.20.1`
+
+1\. R1에는 Server Network인 `192.168.20.0/24`로 가는 Static Route를 설정한다.
+``` 
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.12.2
+```
+
+2\. R2에는 User Network인 `192.168.10.0/24`로 돌아가는 Static Route를 설정한다.
+``` 
+R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
+```
+
+3\. PC1이 Server로 Packet을 전송하면 R1은 Static Route를 확인하여 R2로 전달한다.
+
+4\. R2는 Packet을 Connected Network인 `192.168.20.0/24`로 전달한다.
+
+5\. Server는 응답 Packet을 Default Gateway인 R2로 전송한다.
+
+6\. R2는 Static Route를 확인하여 응답 Packet을 R1으로 전달한다.
+
+7\. R1은 응답 Packet을 Connected Network인 `192.168.10.0/24`의 PC1으로 전달한다.
+
