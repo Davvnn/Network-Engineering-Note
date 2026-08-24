@@ -235,7 +235,7 @@ PC1> ping 192.168.1.20
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 ARP Request와 ARP Reply는 어떤 방식으로 전송되는가?
 - ARP Request는 상대방의 IP Address는 알지만 MAC Address를 모를 때, 해당 MAC Address를 확인하기 위해 자신이 속한 네트워크에 Broadcast를 전송한다.
