@@ -315,7 +315,7 @@ DSW1# show access-lists
 ```
 --- 
 
-## 실무 질문
+## 주요 질문
 
 SVI란 무엇인가?
 - SVI는 VLAN을 Layer 3 Interface로 사용하기 위해 생성하는 논리적인 Interface이다.
