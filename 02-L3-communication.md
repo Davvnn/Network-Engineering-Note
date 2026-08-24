@@ -109,7 +109,7 @@ R1# show ip route
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 라우터의 Routing Table에 Destination IP Address와 일치하는 경로가 없으면 어떻게 동작하는가?
 - 일치하는 경로가 없으면 Default Route인 `0.0.0.0/0`에 설정된 Next-Hop과 Exit Interface로 내보낸다. 만약 Default Route도 없으면 Packet을 폐기한다.
