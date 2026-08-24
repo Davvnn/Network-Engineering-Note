@@ -350,4 +350,76 @@ R1# show ip route 192.168.20.0
 
 ---
 
+## Troubleshooting
 
+### Static Route를 설정했지만 목적지와 통신할 수 없는 경우
+
+1\. 출발지 단말의 IP Address, Subnet Mask 및 Default Gateway를 확인한다.
+
+2\. Router Interface의 설정을 확인한다.
+``` 
+R1# show ip interface brief
+R1# show run | inc gi0/1
+```
+
+3\. 직접 연결된 Next-Hop IP Address로 Ping을 전송한다.
+``` 
+R1# ping 10.0.12.2
+```
+
+4\. 목적지 Network에 대한 Static Route가 Routing Table에 등록되어 있는지 확인한다.
+``` 
+R1# show ip route 192.168.20.0
+R1# show ip route static
+```
+
+5\. 목적지 Network, Subnet Mask 및 Next-Hop IP Address가 올바른지 확인한다.
+
+6\. 반대편 Router에 출발지 Network로 돌아오는 Return Route가 있는지 확인한다.
+
+7\. Traceroute를 사용하여 Packet이 중단되는 구간을 확인한다.
+``` 
+R1# traceroute 192.168.20.10
+```
+
+8\. Interface 또는 Router에 적용된 ACL이 Traffic을 차단하고 있지 않은지 확인한다.
+``` 
+R1# show access-lists
+```
+
+### Floating Static Route이 동작하지 않는 경우
+
+1\. Primary Route가 Routing Table에서 실제로 제거되었는지 확인한다.
+
+2\. Floating Static Route가 Routing Table에 등록되었는지 확인한다.
+
+3\. Backup Next-Hop IP Address로 통신할 수 있는지 확인한다.
+
+4\. Backup 경로에 목적지 Network와 출발지 Network에 대한 Route가 모두 구성되어 있는지 확인한다.
+
+5\. Backup 경로의 Interface 상태와 ACL이 Traffic을 차단하고 있지 않은지 확인한다.
+
+6\. Primary Interface는 Up 상태이지만 원격 구간에 장애가 발생한 경우에는 Primary Route가 계속 유지될 수 있다.
+- IP SLA와 Object Tracking을 사용하여 Primary Route를 제거하도록 구성한다.
+
+---
+
+## 주요 질문
+
+Static Route란 무엇인가?
+- 목적지 Network까지의 경로를 관리자가 Router에 직접 설정하는 방식이다.
+
+Static Route는 언제 사용하는가?
+- 경로가 많지 않은 소규모 Network, Default Route 및 Backup Route를 구성할 때 사용한다.
+
+Static Route의 기본 Administrative Distance는 얼마인가?
+- Static Route의 기본 Administrative Distance는 `1`이다.
+
+Default Route란 무엇인가?
+- Routing Table에 목적지 Network가 없을 때 사용하는 경로이다.
+
+Floating Static Route란 무엇인가?
+- Primary Route보다 높은 AD를 설정하여 주 경로에 장애가 발생했을 때 사용하는 Backup Static Route이다.
+
+Static Route를 설정했는데 통신되지 않는다면 무엇을 확인하는가?
+- Interface 상태, Next-Hop 연결, Routing Table, Return Route 및 ACL을 확인한다.
