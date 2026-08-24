@@ -169,51 +169,6 @@ R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
 
 7\. R1은 응답 Packet을 Connected Network인 `192.168.10.0/24`의 PC1으로 전달한다.
 
----
-
-## 예시 및 구성도
-
-### Static Route를 이용한 Network 연결
-
-회사에서 새로운 Server Farm을 구축하기 위해 Router와 Server를 새로 구매하여 Network를 구성하였다.
-
-사용자들이 Server를 사용하기 위해 Server Network에 접근해야 하지만, 아직 R1과 R2에 상대방 Network로 가는 Route가 설정되어 있지 않아 Server에 접근하지 못하고 있다.
-
-해당 경로는 단순하고 Network의 변화가 많지 않기 때문에 관리자는 Static Route를 구성하려고 한다.
-
-![](images/12-static-route.png)
-
-- R1: User Network
-- R2: Server Network
-- PC1: `192.168.10.10/24`
-- PC1 Default Gateway: `192.168.10.1`
-- R1 `Gi0/0`: `192.168.10.1/24`
-- R1 `Gi0/1`: `10.0.12.1/30`
-- R2 `Gi0/0`: `10.0.12.2/30`
-- R2 `Gi0/1`: `192.168.20.1/24`
-- Server: `192.168.20.10/24`
-- Server Default Gateway: `192.168.20.1`
-
-1\. R1에는 Server Network인 `192.168.20.0/24`로 가는 Static Route를 설정한다.
-``` 
-R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.12.2
-```
-
-2\. R2에는 User Network인 `192.168.10.0/24`로 돌아가는 Static Route를 설정한다.
-``` 
-R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
-```
-
-3\. PC1이 Server로 Packet을 전송하면 R1은 Static Route를 확인하여 R2로 전달한다.
-
-4\. R2는 Packet을 Connected Network인 `192.168.20.0/24`로 전달한다.
-
-5\. Server는 응답 Packet을 Default Gateway인 R2로 전송한다.
-
-6\. R2는 Static Route를 확인하여 응답 Packet을 R1으로 전달한다.
-
-7\. R1은 응답 Packet을 Connected Network인 `192.168.10.0/24`의 PC1으로 전달한다.
-
 ### Internet 회선 이중화
 
 회사는 Internet 회선을 이중화하기 위해 두 개의 ISP 회선을 사용하려고 한다.
