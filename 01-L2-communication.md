@@ -85,7 +85,7 @@ SW1# show interfaces status
 
 ---
 
-## 실무 질문
+## 주요 질문
 
 스위치는 Destination MAC Address를 모르면 어떻게 동작하는가?
 - Frame이 들어온 인터페이스를 제외하고, 같은 VLAN에 속한 모든 인터페이스로 Frame을 Flooding한다.
