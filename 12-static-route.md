@@ -256,8 +256,8 @@ R1(config)# ip route 0.0.0.0 0.0.0.0 198.51.100.2 2
 9\. Floating Static Default Route는 Routing Table에서 제거되고 다시 Backup Route로 대기한다.
 
 Interface는 Up 상태이지만 ISP 내부의 원격 구간에 장애가 발생한 경우에는 Primary Default Route가 제거되지 않을 수 있다. 이러한 장애까지 감지하려면 IP SLA와 Object Tracking을 함께 사용해야 한다.
-- 실제 환경에서 Private IP Address를 사용하는 내부 단말이 Internet에 접근하려면 NAT 또는 PAT 설정도 필요하다.
-- PC가 외부 Network와 통신하려면 Packet이 R1에서 ISP로 전달되기 전에 PC의 Private Source IP Address를 ISP로부터 할당받은 Public IP Address로 NAT 또는 PAT해야 한다.
+
+실제 환경에서는 PC가 외부 Network와 통신하려면 Packet이 R1에서 ISP로 전달되기 전에 PC의 Private Source IP Address를 ISP로부터 할당받은 Public IP Address로 NAT 또는 PAT해야 한다.
 
 
 
