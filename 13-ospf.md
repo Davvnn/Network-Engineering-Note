@@ -189,3 +189,45 @@ NSSA(Not-So-Stubby Area)는 Stub Area처럼 다른 Area에서 들어오는 Type 
 - Type 7 LSA는 NSSA 내부에서만 Flooding된다.
 
 일반 Stub Area에서는 Type 5 LSA를 사용할 수 없고 Area 내부에서도 외부 Route를 Redistribution할 수 없다. 하지만 NSSA는 Type 5 LSA 대신 Type 7 LSA를 사용하여 이를 해결한다.
+
+#### Type 7에서 Type 5로의 변환
+
+NSSA 내부 ASBR이 외부 Route를 Redistribution하면 Type 7 LSA가 생성된다. NSSA의 ABR은 다른 Area에서도 해당 외부 Route를 사용할 수 있도록 Type 7 LSA를 Type 5 LSA로 변환한다.
+- NSSA 내부 ASBR이 외부 Route를 OSPF로 Redistribution한다.
+- ASBR이 해당 외부 Route를 Type 7 LSA로 생성한다.
+- Type 7 LSA가 NSSA 내부에 Flooding된다.
+- NSSA의 ABR이 변환 대상 Type 7 LSA를 수신한다.
+- ABR이 Type 7 LSA를 Type 5 LSA로 변환한다.
+- 변환된 Type 5 LSA가 Area 0과 Type 5 LSA를 허용하는 다른 Normal Area로 전달된다.
+- Area 0의 Router는 Type 1 LSA를 통해 변환 ABR의 위치를 알 수 있으므로 Type 4 LSA가 필요하지 않다.
+- 다른 Normal Area의 ABR은 Area 0에서 Type 5 LSA를 통해 External Network와 변환 ABR의 Router ID를 확인하고, Type 1 LSA를 통해 변환 ABR까지의 경로를 확인한다. 이후 변환 ABR까지의 경로를 Type 4 LSA로 만들어 자신의 Area에 광고한다.
+
+하나의 NSSA에 ASBR과 ABR이 동시에 존재할 수 있다. ASBR은 외부 Route를 NSSA로 Redistribution하여 Type 7 LSA를 생성하고, ABR은 Type 7 LSA를 Type 5 LSA로 변환하여 다른 Area에 광고한다.
+
+#### NSSA의 Default Route 동작
+
+일반 NSSA는 Stub Area와 달리 ABR이 Default Route를 자동으로 광고하지 않는다.
+
+- 일반 NSSA는 Type 3 LSA를 통해 다른 OSPF Area의 Network를 학습한다.
+- 다른 Area에서 생성된 Type 5 LSA는 NSSA로 들어오지 않는다.
+- Default Route가 필요하면 별도의 Default Route 광고 설정이 필요하다.
+- Cisco IOS에서 일반 NSSA의 Default Route는 Type 7 LSA로 광고되며 Routing Table에는 일반적으로 `O*N2`로 표시된다.
+
+NSSA에 Default Route가 없더라도 Type 3 LSA로 학습한 다른 OSPF Area의 Network에는 통신할 수 있다. 그러나 Type 5 LSA로만 알려진 외부 목적지는 별도의 Default Route나 구체적인 Route가 없으면 통신할 수 없다.
+
+#### NSSA의 Default Route 동작
+
+일반 NSSA는 Stub Area와 달리 ABR이 Default Route를 자동으로 광고하지 않는다.
+- 일반 NSSA는 Type 3 LSA를 통해 다른 OSPF Area의 Network를 학습한다.
+- 다른 Area에서 생성된 Type 5 LSA는 NSSA로 들어오지 않는다.
+- Default Route가 필요하면 별도의 Default Route 광고 설정이 필요하다.
+- Cisco IOS에서 일반 NSSA의 Default Route는 Type 7 LSA로 광고되며 Routing Table에는 일반적으로 `O*N2`로 표시된다.
+
+NSSA에 Default Route를 광고하면 NSSA 내부 Router는 0.0.0.0/0 Type 7 Default Route를 학습한다. 이후 Routing Table에 목적지 Route가 없는 패킷은 Default Route를 통해 ABR로 전달한다. NSSA 내부 Router는 다른 Area의 External Route를 구체적으로 알지 못하지만, ABR은 Area 0을 통해 해당 Route를 알고 있으므로 패킷을 목적지로 전달할 수 있다.   
+
+```
+router ospf 1
+ area 2 nssa default-information-originate
+```
+Area 2를 NSSA로 설정하고, `0.0.0.0/0` Default Route를 Area 2 내부에 Type 7 LSA로 광고한다.
+
