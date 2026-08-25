@@ -53,7 +53,7 @@ OSPF는 규모가 큰 Network를 여러 Area로 나누어 LSA의 Flooding 범위
 
 Area 0은 OSPF를 Backbone Area라고 부른다. 모든 Non-Backbone Area는 Area 0과 연결되어야 하며, 다른 Area 간 Traffic은 Area 0을 통해 전달된다.
 
-#### OSPF Router 역할
+### OSPF Router 역할
 
 Backbone Router: Area 0에 속한 Router이다.
 
@@ -190,7 +190,7 @@ NSSA(Not-So-Stubby Area)는 Stub Area처럼 다른 Area에서 들어오는 Type 
 
 일반 Stub Area에서는 Type 5 LSA를 사용할 수 없고 Area 내부에서도 외부 Route를 Redistribution할 수 없다. 하지만 NSSA는 Type 5 LSA 대신 Type 7 LSA를 사용하여 이를 해결한다.
 
-#### Type 7에서 Type 5로의 변환
+### Type 7에서 Type 5로의 변환
 
 NSSA 내부 ASBR이 외부 Route를 Redistribution하면 Type 7 LSA가 생성된다. NSSA의 ABR은 다른 Area에서도 해당 외부 Route를 사용할 수 있도록 Type 7 LSA를 Type 5 LSA로 변환한다.
 - NSSA 내부 ASBR이 외부 Route를 OSPF로 Redistribution한다.
