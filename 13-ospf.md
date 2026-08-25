@@ -84,6 +84,8 @@ DBD Packet은 LSA Type, Link State ID, Advertising Router 및 Sequence Number �
 
 ### OSPF Neighbor State
 
+![](images/13-ospf-neighbor-state.png)
+
 1\. Down: Neighbor로부터 Hello Packet을 수신하지 못한 상태이다.
 
 2\. Attempt: NBMA 환경에서 수동으로 지정한 Neighbor에게 Hello Packet을 보내고 응답을 기다리는 상태이다.
