@@ -243,3 +243,86 @@ Totally NSSA는 Totally Stubby Area의 기능과 NSSA의 Redistribution 기능�
 
 NSSA에서 Totally NSSA가 되기 위해서는 `no-summary`를 ABR에 설정해야 한다. 이후 ABR은 다른 Area에서 받은 Type 3 LSA를 내부 Router에 광고하지 않고, 대신 `0.0.0.0/0` Type 3 Default Route를 광고한다.
 
+### OSPF Route Summarization
+
+OSPF Route Summarization은 여러 상세 Route를 하나의 Summary Route로 묶어 다른 Area에 광고하는 기술이다.
+
+- Routing Table과 LSDB의 Route 및 LSA 수가 줄어든다.
+- Route가 변경이 되도 다른 Area까지 전파되는 범위를 줄어든다.
+- 같은 Area 내부에서는 Type 1과 Type 2 LSA를 통해 Route를 그대로 공유하고, 다른 Area로 광고할 때만 ABR이 Route를 요약한다.
+- Summarization은 ABR 또는 ASBR에서 수행한다.
+- ABR은 한 Area의 여러 내부 Route를 요약하여 다른 Area에 Type 3 LSA로 광고한다.
+```
+area 1 range 10.1.0.0 255.255.252.0
+```
+
+- ASBR은 OSPF로 Redistribution되는 External Route를 요약하여 Normal Area에서는 Type 5 LSA로, NSSA에서는 Type 7 LSA로 광고한다.
+- ASBR에서는 `summary-address` 명령어를 사용한다.
+```
+summary-address 10.11.11.0 255.255.255.128
+```
+
+Summary Route를 생성하면 ABR 또는 ASBR의 Routing Table에 Summary 범위의 `Null0` Discard Route가 생성된다. 목적지에 대한 실제 Route가 Routing Table에 있으면 해당 Route로 전달하지만, 목적지가 Summary 범위에만 포함되고 실제 Route가 없으면 Traffic은 `Null0`로 전달되어 폐기된다. 
+```
+R1# show ip route ospf
+
+O     10.1.0.0/22 is a summary, 00:05:21, Null0
+O     10.1.0.0/24 [110/20] via 10.0.12.1, 00:05:21, GigabitEthernet0/1
+O     10.1.1.0/24 [110/20] via 10.0.12.1, 00:05:21, GigabitEthernet0/1
+```
+
+`10.1.0.0/22`는 `10.1.2.0/24`와 `10.1.3.0/24`까지 포함한다. 하지만 Routing Table에는 `10.1.2.0/24` 또는 `10.1.3.0/24`로 가는 Route가 없다. 이 상태에서 `10.1.2.10`이나 `10.1.3.10`으로 패킷을 보내면 해당 패킷은 `Null0`로 전달되어 폐기된다.
+
+### OSPF Route Filtering
+
+OSPF Route Filtering은 특정 Route가 다른 Area에 광고되것을 제한하는 기능이다. 
+
+ABR Filtering은 Area 사이에 전달되는 Type 3 LSA를 제한한다.
+
+`area 1 range 10.1.0.0 255.255.0.0 not-advertise`는 Area 1에서 `10.1.0.0 255.255.0.0`를 다른 Area에 광고하지 않는다. `not-advertise`는 큰 Network 범위를 한꺼번에 차단할 때 사용한다.
+```
+R3(config)# router ospf 1
+R3(config-router)# area 1 range 10.1.0.0 255.255.0.0 not-advertise
+```
+
+`area filter-list prefix`는 Prefix List를 사용하여 특정 Type 3 LSA를 필터링하며, `in`은 지정한 Area로 들어오는 Route를 제한하고 `out`은 지정한 Area에서 나가는 Route를 제한한다.
+```
+ip prefix-list BLOCK35 seq 5 deny 10.1.35.0/24
+ip prefix-list BLOCK35 seq 10 permit 0.0.0.0/0 le 32
+
+router ospf 1
+ area 2 filter-list prefix BLOCK35 in
+```
+- 다른 Area의 `10.1.35.0/24` Type 3 LSA가 Area 2로 들어오는 것을 차단한다.
+- 나머지 Prefix는 Area 2로 들어오는 것을 허용한다.
+
+```
+ip prefix-list BLOCK35 seq 5 deny 10.1.35.0/24
+ip prefix-list BLOCK35 seq 10 permit 0.0.0.0/0 le 32
+
+router ospf 1
+ area 1 filter-list prefix BLOCK35 out
+```
+- Area 1의 `10.1.35.0/24`가 다른 Area에 Type 3 LSA로 광고되는 것을 차단한다.
+- 나머지 Prefix는 다른 Area로 광고되는 것을 허용한다.
+
+ASBR은 Route Map을 사용하여 외부 Route가 OSPF로 Redistribution되는 것을 제한한다.
+- 허용된 Route만 Type 5 또는 Type 7 LSA로 생성된다.
+- 차단된 Route는 OSPF Domain에 광고되지 않는다.
+- Route Map을 사용하여 External Metric과 Metric Type을 설정할 수 있다.
+- Route를 차단하려면 ACL이나 Prefix List에서 대상을 `permit`으로 일치시키고 `route-map deny`에서 차단한다.
+
+예를 들어 `10.11.16.0/24`는 OSPF로 Redistribution하지 않고, 나머지 Static Route는 E1 Metric `100`으로 Redistribution한다.
+```
+ip prefix-list BLOCK16 seq 5 permit 10.11.16.0/24
+
+route-map STATIC-TO-OSPF deny 10
+ match ip address prefix-list BLOCK16
+
+route-map STATIC-TO-OSPF permit 20
+ set metric 100
+ set metric-type type-1
+
+router ospf 1
+ redistribute static subnets route-map STATIC-TO-OSPF
+```
