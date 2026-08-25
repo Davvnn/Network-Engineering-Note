@@ -204,7 +204,7 @@ NSSA 내부 ASBR이 외부 Route를 Redistribution하면 Type 7 LSA가 생성된
 
 하나의 NSSA에 ASBR과 ABR이 동시에 존재할 수 있다. ASBR은 외부 Route를 NSSA로 Redistribution하여 Type 7 LSA를 생성하고, ABR은 Type 7 LSA를 Type 5 LSA로 변환하여 다른 Area에 광고한다.
 
-#### NSSA의 Default Route 동작
+### NSSA의 Default Route 동작
 
 일반 NSSA는 Stub Area와 달리 ABR이 Default Route를 자동으로 광고하지 않는다.
 
@@ -215,7 +215,7 @@ NSSA 내부 ASBR이 외부 Route를 Redistribution하면 Type 7 LSA가 생성된
 
 NSSA에 Default Route가 없더라도 Type 3 LSA로 학습한 다른 OSPF Area의 Network에는 통신할 수 있다. 그러나 Type 5 LSA로만 알려진 외부 목적지는 별도의 Default Route나 구체적인 Route가 없으면 통신할 수 없다.
 
-#### NSSA의 Default Route 동작
+### NSSA의 Default Route 동작
 
 일반 NSSA는 Stub Area와 달리 ABR이 Default Route를 자동으로 광고하지 않는다.
 - 일반 NSSA는 Type 3 LSA를 통해 다른 OSPF Area의 Network를 학습한다.
