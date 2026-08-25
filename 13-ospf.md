@@ -2,8 +2,6 @@
 
 ## 개념
 
-### OSPF
-
 OSPF(Open Shortest Path First)는 Link-State 기반의 동적 라우팅 프로토콜이다. 각 Router는 LSA(Link-State Advertisement)를 교환하여 LSDB(Link-State Database)를 구성하고, Dijkstra의 SPF(Shortest Path First) 알고리즘으로 목적지까지의 최적 경로를 계산한다.
 
 OSPF의 특징은 다음과 같다.
