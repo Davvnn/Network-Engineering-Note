@@ -110,4 +110,34 @@ Point-to-Point Link에서는 연결된 두 Router가 Full 상태까지 Neighbor 
 - DROther끼리는 Neighbor 관계를 형성하지만 DBD를 교환하거나 LSDB를 직접 동기화하지 않는다.
 - 대신 DR을 통해 LSA를 전달받아 같은 Area의 Router들과 동일한 LSDB를 유지한다.
 
+### LSA Type
+
+Type 1 Router LSA: 모든 OSPF Router가 생성하며 자신이 연결된 Link, Neighbor, Network와 Cost를 같은 Area에 광고한다.
+- 각 Router가 자신과 연결된 Neighbor 및 Network와 해당 경로의 Cost를 같은 Area에 광고한다.
+
+Type 2 Network LSA: DR이 생성하며 같은 Network에 연결된 OSPF Router 목록과 Subnet Mask를 같은 Area에 광고한다.
+- DR이 자신이 속한 OSPF Network의 대역과 자기와 연결된 OSPF Router 목록을 같은 Area에 광고한다.  
+
+Type 3 Summary LSA: ABR이 생성하며 다른 Area의 Network와 해당 Network까지의 Cost를 자신의 Area에 광고한다.
+- ABR이 자신을 통해 다른 Area의 OSPF Network로 갈 수 있다는 정보를 자신의 Area에 광고한다. 
+
+Type 4 ASBR Summary LSA: ABR이 생성하며 다른 Area에 있는 ASBR의 Router ID와 해당 ASBR까지의 Cost를 자신의 Area에 광고한다.
+- ABR이 자신을 통해 다른 Area에 있는 ASBR로 갈 수 있다는 정보를 자신의 Area에 광고한다.
+- 만약 ASBR이 같은 Area에 있으면 Type 1 LSA를 통해 경로를 확인할 수 있으므로 Type 4 LSA는 필요하지 않다.
+
+Type 5 AS External LSA: ASBR이 생성하며 Redistribution된 외부 Network와 External Metric을 OSPF Domain에 광고한다.
+- ASBR이 OSPF 외부 Network와 External Metric을 OSPF Domain에 광고한다.
+- Static, EIGRP, BGP 등의 Route를 OSPF로 Redistribution할 때 생성된다.
+
+Type 6 Group Membership LSA: OSPF 환경에서는 거의 사용되지 않는다.
+
+Type 7 NSSA External LSA: NSSA 내부 ASBR이 생성하며 NSSA로 Redistribution된 외부 Route를 광고한다.
+- NSSA 내부 ASBR이 외부 Network를 NSSA에 광고하며 ABR에서 Type 5 LSA로 변환되어 다른 Area에 전달될 수 있다.
+
+
+ASBR이 외부 Route를 Redistribution하면 Type 5 LSA를 생성한다. ASBR과 다른 Area에 있는 Router가 해당 ASBR까지 도달할 수 있도록 ABR은 Type 4 LSA를 생성한다. ASBR과 같은 Area에 있는 Router는 Type 1 LSA로 ASBR의 위치를 알 수 있으므로 Type 4 LSA가 필요하지 않다.
+
+NSSA 내부에서 Redistribution된 Route는 Type 7 LSA로 생성된다. Type 7 LSA는 NSSA 내부에서만 Flooding되며 ABR은 Type 7 LSA를 Type 5 LSA로 변환하여 다른 Area에 광고한다.
+
+ABR은 연결된 Area마다 별도의 LSDB를 유지하고 하나의 Routing Table을 사용한다. 한 Area의 Type 1과 Type 2 LSA를 다른 Area로 그대로 전달하지 않고, 해당 LSA로 계산한 Network 정보를 Type 3 LSA로 요약하여 광고한다.
 
