@@ -141,3 +141,15 @@ NSSA 내부에서 Redistribution된 Route는 Type 7 LSA로 생성된다. Type 7 
 
 ABR은 연결된 Area마다 별도의 LSDB를 유지하고 하나의 Routing Table을 사용한다. 한 Area의 Type 1과 Type 2 LSA를 다른 Area로 그대로 전달하지 않고, 해당 LSA로 계산한 Network 정보를 Type 3 LSA로 요약하여 광고한다.
 
+### DR and BDR
+
+Broadcast와 NBMA Network에서는 모든 Router가 DR과 BDR을 선출한다.
+- 모든 Router가 서로 Full Adjacency를 형성하면 LSA 교환량이 증가하여 과부하가 발생할 수 있기 때문이다.
+
+DR과 BDR은 다음 순서로 선출된다.
+1\. OSPF Interface Priority가 가장 높은 Router
+2\. Priority가 같으면 Router ID가 가장 높은 Router
+
+Priority의 기본값은 `1`이며, Priority를 `0`으로 설정한 Interface는 DR이나 BDR로 선출될 수 없다.
+
+DR/BDR 선출은 `Non-Preemptive` 방식이다. DR이 선출된 이후 더 높은 Priority나 Router ID를 가진 Router가 연결되어도 기존 DR을 교체하지 않는다. DR에 장애가 발생하면 BDR이 DR로 승격되고 새로운 BDR을 선출한다.
