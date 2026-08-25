@@ -231,3 +231,15 @@ router ospf 1
 ```
 Area 2를 NSSA로 설정하고, `0.0.0.0/0` Default Route를 Area 2 내부에 Type 7 LSA로 광고한다.
 
+### Totally NSSA
+
+Totally NSSA는 Totally Stubby Area의 기능과 NSSA의 Redistribution 기능을 함께 사용하는 Area이다.
+- Type 1과 Type 2 LSA를 사용하여 Area 내부 Route를 학습한다.
+- Type 3, Type 4, Type 5 LSA를 차단한다.
+- ABR은 Type 3 Default Route를 광고한다.
+- NSSA 내부 ASBR이 생성한 Type 7 LSA는 허용한다.
+- Type 7 LSA는 ABR에서 Type 5 LSA로 변환되어 다른 Area에 전달될 수 있다.
+- 해당 Area 외부 OSPF Network는 Type 3 Default Route를 통해 ABR 방향으로 전달한다.
+
+NSSA에서 Totally NSSA가 되기 위해서는 `no-summary`를 ABR에 설정해야 한다. 이후 ABR은 다른 Area에서 받은 Type 3 LSA를 내부 Router에 광고하지 않고, 대신 `0.0.0.0/0` Type 3 Default Route를 광고한다.
+
