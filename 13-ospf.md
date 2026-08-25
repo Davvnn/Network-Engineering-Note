@@ -147,9 +147,45 @@ Broadcast와 NBMA Network에서는 모든 Router가 DR과 BDR을 선출한다.
 - 모든 Router가 서로 Full Adjacency를 형성하면 LSA 교환량이 증가하여 과부하가 발생할 수 있기 때문이다.
 
 DR과 BDR은 다음 순서로 선출된다.
+
 1\. OSPF Interface Priority가 가장 높은 Router
+
 2\. Priority가 같으면 Router ID가 가장 높은 Router
 
 Priority의 기본값은 `1`이며, Priority를 `0`으로 설정한 Interface는 DR이나 BDR로 선출될 수 없다.
 
 DR/BDR 선출은 `Non-Preemptive` 방식이다. DR이 선출된 이후 더 높은 Priority나 Router ID를 가진 Router가 연결되어도 기존 DR을 교체하지 않는다. DR에 장애가 발생하면 BDR이 DR로 승격되고 새로운 BDR을 선출한다.
+
+### Stub Area
+
+Stub Area는 외부 Route를 나타내는 Type 5 LSA와 외부 ASBR의 위치를 나타내는 Type 4 LSA를 차단하여 LSDB와 Routing Table을 단순화하는 Area이다.
+- Type 1과 Type 2 LSA를 사용하여 Area 내부 Route를 학습한다.
+- Type 3 LSA를 사용하여 다른 OSPF Area의 Network를 학습한다.
+- Type 4와 Type 5 LSA는 차단한다.
+- ABR은 Stub Area 내부에 `0.0.0.0/0` Type 3 Default Route를 자동으로 광고한다.
+- Stub Area의 모든 내부 Router는 ABR이 광고한 `0.0.0.0/0` Default Route를 routing table에 추가하고, 목적지 Route가 없으면 자신의 Default Route를 사용하여 ABR로 패킷을 전달한다.  
+- ABR은 자신이 알고 있는 외부 Route를 사용하여 패킷을 ASBR 방향으로 전달한다.
+
+### Totally Stubby Area
+
+Totally Stubby Area는 Stub Area의 기능에 더해 다른 Area의 Network를 나타내는 Type 3 LSA까지 차단하는 Area이다.
+- Type 1과 Type 2 LSA를 사용하여 Area 내부 Route를 학습한다.
+- Type 3, Type 4, Type 5 LSA를 차단한다.
+- ABR은 Type 3 Default Route를 광고한다.
+- 다른 OSPF Area와 External Network로 가기 위해서는 ABR이 광고한 Type 3 Default Route를 통해 나갈 수 있다.
+- 다른 Area의 네트워크를 학습하지 않으므로 Stub Area보다 LSDB와 Routing Table을 더 작게 유지할 수 있다.
+
+Stub Area에서 Totally Stubby Area가 되기 위해서는 `no-summary`를 ABR에 설정해야 한다. 이후 ABR은 다른 Area에서 받은 Type 3 LSA를 내부 Router에 광고하지 않고, 대신 `0.0.0.0/0` Type 3 Default Route를 광고한다.
+- `no-summary`는 해당 Area의 Route가 밖으로 나가는 것을 차단하는 것이 아니라, 다른 Area의 일반 Type 3 LSA가 해당 Area로 들어오는 것만 차단한다.
+
+### NSSA and LSA Type 7
+
+NSSA(Not-So-Stubby Area)는 Stub Area처럼 다른 Area에서 들어오는 Type 4와 Type 5 LSA를 차단하지만, NSSA 내부에서 외부 Route를 Redistribution할 수 있는 Area이다.
+- Type 1과 Type 2 LSA를 사용하여 NSSA 내부 Route를 학습한다.
+- Type 3 LSA를 사용하여 다른 OSPF Area의 Network를 학습한다.
+- 다른 Area에서 들어오는 Type 4와 Type 5 LSA는 차단한다.
+- NSSA 내부 ASBR의 Redistribution은 허용한다.
+- NSSA 내부에서 Redistribution된 외부 Route는 Type 7 LSA로 생성된다.
+- Type 7 LSA는 NSSA 내부에서만 Flooding된다.
+
+일반 Stub Area에서는 Type 5 LSA를 사용할 수 없고 Area 내부에서도 외부 Route를 Redistribution할 수 없다. 하지만 NSSA는 Type 5 LSA 대신 Type 7 LSA를 사용하여 이를 해결한다.
