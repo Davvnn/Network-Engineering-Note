@@ -8,12 +8,37 @@ EIGRP의 특징은 다음과 같다.
 - IP Protocol Number `88`을 사용하며 TCP나 UDP를 사용하지 않는다.
 - IPv4에서는 `224.0.0.10` Multicast Address를 사용한다.
 - Internal EIGRP Route의 AD 값은 `90`, Redistribution된 External EIGRP Route의 AD 값은 `170`이다.
-- Neighbor를 처음 형성할 때는 전체 EIGRP Route 정보를 교환하고, 이후에는 Route가 변경될 때 변경된 정보만 `Partial Update`로 전달한다.
 - 경로에서 가장 낮은 Bandwidth와 모든 Interface Delay의 합을 기반으로 Metric을 계산하고, Metric이 가장 낮은 경로를 최적 경로로 선택한다. 
 - Equal-Cost Load Balancing과 Unequal-Cost Load Balancing을 지원한다.
 - Neighbor를 형성하려면 AS Number가 같아야 한다.
 
-Equal-Cost Load Balancing은 같은 목적지로 가는 여러 경로의 Metric이 같을 때 모두 Routing Table에 등록하여 사용하는 방식이다.Unequal-Cost Load Balancing은 `variance`를 설정하여 Metric이 다른 경로도 Routing Table에 등록하여 함께 사용하는 방식이다.
+### EIGRP Route Advertisement
+
+EIGRP가 활성화된 Interface는 Hello Packet을 전송하여 Neighbor를 찾는다. 양쪽 Router가 Neighbor 조건을 충족하면 EIGRP Neighbor를 형성하고 서로의 Neighbor Table에 등록한다.
+
+`network` 명령어는 입력한 Network 자체를 직접 광고하는 명령어가 아니라 해당 범위에 포함되는 Interface에서 EIGRP를 활성화하는 명령어이다. Interface에서 EIGRP가 활성화되면 해당 Interface의 Connected Network가 Neighbor에게 광고된다.
+```
+R1(config)# router eigrp 100
+R1(config-router)# network 10.0.12.0 0.0.0.3
+R1(config-router)# network 192.168.10.0 0.0.0.255
+```
+
+Passive Interface를 설정하면 해당 Interface로는 Hello Packet을 보내지 않고 Neighbor도 형성하지 않는다.
+
+Neighbor 관계가 처음 형성되면 각 EIGRP Router는 Update Packet을 사용하여 자신이 알고 있는 EIGRP Route를 Neighbor에게 광고한다.
+- `network` 명령어로 EIGRP가 활성화된 Interface의 Connected Network
+- 다른 EIGRP Neighbor에게 학습한 Route
+
+Neighbor에게 Route를 광고하고 경로를 선택하는 과정은 다음과 같다.
+- R1과 R2는 Hello Packet을 주고받아 Neighbor 관계를 형성한다.
+- R1과 R2는 서로를 Neighbor Table에 저장한다.
+- R1은 자신이 알고 있는 EIGRP Route를 Update Packet으로 R2에게 광고한다.
+- R2는 Update Packet을 정상적으로 수신했다는 것을 알리기 위해 R1에게 ACK Packet을 전송한다.
+- R2는 전달받은 Route와 Metric 정보를 Topology Table에 저장한다.
+- R2는 자신이 알고 있는 다른 Route와 Metric을 비교하여 가장 낮은 경로를 Successor로 선택한다.
+- 선택된 Successor Route를 Routing Table에 등록한다.
+
+Neighbor 관계를 형성한 이후에는 전체 EIGRP Route를 주기적으로 다시 광고하지 않는다. 새로운 Network가 추가되거나 기존 Route가 변경 또는 삭제되면 변경된 Route 정보만 Partial Update로 광고한다.
 
 ### EIGRP Table
 
@@ -106,4 +131,41 @@ Neighbor의 Reported Distance < 현재 Successor의 Feasible Distance
 Neighbor의 RD가 현재 Router의 FD보다 작다는 것은 Neighbor가 현재 Router보다 목적지에 더 가까이 있다는 의미이다. 만약 RD가 FD보다 크거나 같으면 현재 Router는 “어? 이 Neighbor의 RD가 내 FD보다 큰데, 그러면 이 Neighbor가 나를 거쳐 목적지로 가고 있을 수도 있겠네. 이 경로를 Backup으로 선택하면 Loop가 발생할 수도 있겠다.”라고 판단한다.  
 
 하지만 RD가 FD보다 작으면 “이 Neighbor는 나보다 목적지에 더 가까우니까 나를 다시 거쳐 가는 경로가 아니겠네.”라고 판단한다. 따라서 해당 경로를 Loop 없는 Backup 경로인 Feasible Successor로 저장한다.  
+
+### Passive and Active State
+
+Passive와 Active는 EIGRP Topology Table에 저장된 각 Route의 상태이다.
+
+Passive는 해당 Route의 경로 계산이 완료되어 정상적으로 수렴한 상태이며 `P`로 표시된다. EIGRP Topology Table에서 대부분의 정상 Route는 Passive 상태이다. 
+```
+R1# show ip eigrp topology
+
+EIGRP-IPv4 Topology Table for AS(100)/ID(1.1.1.1)
+
+Codes: P - Passive, A - Active, U - Update, Q - Query, R - Reply
+
+P 192.168.10.0/24, 1 successors, FD is 28160
+        via 10.0.12.2 (28160/25600), GigabitEthernet0/0
+```
+
+Active는 Successor를 잃고 Feasible Successor도 없어 Neighbor에게 Query를 보내고 대체 경로를 찾는 상태이며 `A`로 표시된다.
+```
+R1# show ip eigrp topology active
+
+EIGRP-IPv4 Topology Table for AS(100)/ID(1.1.1.1)
+
+Codes: P - Passive, A - Active, Q - Query, R - Reply
+
+A 192.168.10.0/24, 0 successors, FD is Inaccessible, Q
+        1 replies, active 00:00:12, query-origin: Local origin
+        Remaining replies:
+                via 10.0.12.2, GigabitEthernet0/0
+```
+
+Successor에 장애가 발생하면 EIGRP는 먼저 Feasible Successor가 있는지 확인한다.
+- Feasible Successor가 있으면 해당 경로를 즉시 Successor로 변경하고 Passive 상태를 유지한다.
+- Feasible Successor가 없으면 해당 Route를 Active 상태로 전환하고 Neighbor에게 Query를 보낸다.
+
+Active 상태에서는 Query를 보낸 모든 Neighbor의 Reply를 기다린다. 모든 Reply를 수신하여 경로 계산이 완료되면 다시 Passive 상태가 되고, 대체 경로가 없으면 해당 Route를 Topology Table에서 삭제한다. 
+- Active Timer의 기본값은 `3분`이며, 이 시간 안에 모든 Reply를 받지 못하면 SIA(Stuck-in-Active)가 발생하고 응답하지 않은 Neighbor와의 EIGRP Neighbor 관계가 끊어진다.
 
