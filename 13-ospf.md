@@ -400,4 +400,72 @@ router ospf 1
 
 22\. 같은 Area의 Router들은 DR이 전달한 LSA로 LSDB를 갱신하고 SPF를 다시 계산하여 Routing Table을 갱신한다.
 
+---
 
+## 예시 및 구성도
+
+### Multi-Area OSPF와 Totally NSSA
+
+한 회사는 OSPF의 LSA Flooding 범위와 Routing Table의 크기를 줄이기 위해 Network를 Area 0, Area 1, Area 2로 나누어 운영하고 있다.
+
+Area 0은 Backbone 역할을 하는 Normal Area이며 R1, R2, R3가 연결되어 있다.
+
+R2는 Area 0과 Area 1을 연결하는 ABR이고, R3는 Area 0과 Area 2를 연결하는 ABR이다.
+
+Area 1은 회사의 지사 Network이며 R4가 연결되어 있다. R4는 다른 Area의 External Route를 구체적으로 학습할 필요가 없으므로 Area 1을 Stub Area로 구성한다.
+
+Area 2는 회사의 Data Center Network이며 R5가 연결되어 있다. R5는 Firewall과 연결되어 있고, Firewall 뒤에는 OSPF를 사용하지 않는 `172.16.50.0/24` Server Network가 있다.
+
+Firewall의 IP Address는 `10.2.5.2`이며, R5는 다음 Static Route를 사용하여 Server Network로 패킷을 전달한다.
+```
+R5(config)# ip route 172.16.50.0 255.255.255.0 10.2.5.2
+```
+Area 0의 Router들도 해당 Server Network와 통신해야 하므로 R5의 Static Route를 OSPF로 Redistribution한다.
+
+Area 2는 다른 Area의 상세 Route와 External Route를 학습할 필요가 없어 Totally NSSA로 구성한다.
+
+![](images/14-ospf-area.png)
+
+1\. R1, R2, R3는 Area 0에서 OSPF Neighbor를 형성하고 LSA를 교환하여 LSDB를 구성한다.
+- Area 0은 Type 1, 2, 3, 4, 5 LSA를 허용하는 Normal Area이다.
+
+2\. R2는 Area 0과 Area 1을 연결하는 ABR로 동작하고, R4는 Area 1의 내부 Router로 동작한다.
+
+3\. Area 1은 Stub Area이므로 Type 1, Type 2, Type 3 LSA를 허용하고 다른 Area에서 들어오는 Type 4와 Type 5 LSA를 차단한다.
+
+4\. R2는 다른 OSPF Area의 내부 Route를 Type 3 LSA로 Area 1에 광고하고, Type 3 Default Route도 자동으로 광고한다.
+
+5\. R4는 같은 Area의 Route를 `O`, 다른 Area의 Route를 `O IA`, Default Route를 `O*IA`로 학습한다.
+
+6\. R3는 Area 0과 Area 2를 연결하는 ABR로 동작하고, R5는 Area 2의 ASBR로 동작한다.
+
+7\. Area 2는 Totally NSSA이므로 Type 1, Type 2, Type 7 LSA를 허용하고 다른 Area에서 들어오는 일반 Type 3, Type 4, Type 5 LSA를 차단한다.
+
+8\. R3는 다른 Area의 Route 대신 Type 3 Default Route를 Area 2에 광고한다.
+
+9\. R5는 `172.16.50.0/24`로 가는 Static Route를 OSPF로 Redistribution한다.
+- R5의 Routing Table에는 원본 Static Route가 그대로 유지된다.
+
+10\. R5는 Area 2의 ASBR로서 Redistribution된 Static Route를 Type 7 LSA로 생성하여 Area 2에 광고한다.
+- Area 2의 내부 Router들은 해당 외부 Route를 `O N1` 또는 `O N2`로 학습한다.
+
+11\. R3는 R5가 생성한 Type 7 LSA를 수신하고 `172.16.50.0/24` Route를 학습한다.
+
+12\. R3는 Type 7 LSA를 Type 5 LSA로 변환하여 Area 0에 광고한다.
+- 변환된 Type 5 LSA는 Type 5 LSA를 허용하는 다른 Normal Area에도 전달된다.
+
+13\. R1과 R2는 Type 5 LSA를 통해 `172.16.50.0/24`를 `O E1` 또는 `O E2`로 학습한다.
+
+14\. R2는 Area 1이 Stub Area이므로 Type 5 LSA를 R4에게 광고하지 않는다.
+
+15\. R4가 `172.16.50.0/24`로 패킷을 보내면 해당 Route가 Routing Table에 없으므로 `O*IA` Default Route를 통해 Area 1의 ABR인 R2로 전달한다.
+
+16\. R2는 Type 5 LSA를 통해 해당 External Route를 알고 있으며, Area 0의 Type 1 LSA를 통해 R3까지의 경로를 확인한다.
+
+17\. R2는 해당 패킷을 R3로 전달한다.
+
+18\. R3는 Area 2에서 Type 7 LSA로 학습한 Route를 사용하여 패킷을 R5로 전달한다.
+
+19\. R5는 자신의 Static Route를 사용하여 패킷을 Firewall인 `10.2.5.2`로 전달하고, Firewall은 패킷을 Server Network로 전달한다.
+
+20\. 최종적으로 Traffic은 `R4 → R2 → R3 → R5 → Firewall → 172.16.50.0/24` 순서로 전달된다.
