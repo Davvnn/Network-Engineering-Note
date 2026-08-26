@@ -87,5 +87,23 @@ Metric = 256 × [(10^7 / Lowest Bandwidth) + Sum of Delay]
 ```
 Bandwidth는 `Kbps`, Delay는 `10 Microseconds` 단위로 계산하며, Metric 값이 가장 낮은 경로를 선택한다.
 
+### Successor and Feasible Successor
 
+Successor는 Routing Table에 등록되는 최적 경로이다.
+- Successor은 Next-hop IP Address이다.
+
+Feasible Distance(FD)는 현재 Router가 Successor를 통해 목적지까지 도달하는 데 사용하는 전체 Metric이다.
+
+Reported Distance(RD)는 Neighbor가 해당 목적지까지 도달하는 데 사용하는 Metric이다, Advertised Distance(AD)라고도 한다.
+
+Feasible Successor는 Successor에 장애가 발생했을 때 즉시 사용할 수 있는 Loop 없는 Backup 경로이다.
+
+Backup 경로가 Feasible Successor가 되려면 다음 Feasibility Condition을 만족해야 한다.
+```
+Neighbor의 Reported Distance < 현재 Successor의 Feasible Distance
+```
+
+Neighbor의 RD가 현재 Router의 FD보다 작다는 것은 Neighbor가 현재 Router보다 목적지에 더 가까이 있다는 의미이다. 만약 RD가 FD보다 크거나 같으면 현재 Router는 “어? 이 Neighbor의 RD가 내 FD보다 큰데, 그러면 이 Neighbor가 나를 거쳐 목적지로 가고 있을 수도 있겠네. 이 경로를 Backup으로 선택하면 Loop가 발생할 수도 있겠다.”라고 판단한다.  
+
+하지만 RD가 FD보다 작으면 “이 Neighbor는 나보다 목적지에 더 가까우니까 나를 다시 거쳐 가는 경로가 아니겠네.”라고 판단한다. 따라서 해당 경로를 Loop 없는 Backup 경로인 Feasible Successor로 저장한다.  
 
