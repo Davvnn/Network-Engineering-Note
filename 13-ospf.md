@@ -326,3 +326,78 @@ route-map STATIC-TO-OSPF permit 20
 router ospf 1
  redistribute static subnets route-map STATIC-TO-OSPF
 ```
+---
+
+## 동작 원리
+
+### OSPF Neighbor 형성 및 LSDB 동기화
+
+1\. OSPF Domain을 Area 0과 여러 Non-Backbone Area로 나눈다.
+- Area 0은 Backbone Area이다.
+- 모든 Non-Backbone Area는 Area 0과 연결되어야 한다.
+
+2\. OSPF가 활성화된 Interface에서 `224.0.0.5`로 Hello Packet을 전송한다.
+
+3\. Hello Packet을 수신한 Router는 OSPF 설정이 일치하는지 확인한다.
+- Area ID
+- Area Type
+- Network Mask
+- Hello/Dead Interval
+- Authentication
+
+4\. 설정이 일치하면 상대 Router를 Neighbor로 인식하고 Neighbor 관계 형성을 시작한다.
+- 상대방의 Hello Packet을 처음 수신하면 `Init` 상태가 된다.
+- 서로의 Hello Packet에서 자신의 Router ID를 확인하면 `2-Way` 상태가 된다.
+
+5\. Broadcast와 NBMA Network에서는 DR과 BDR을 선출한다.
+- Interface Priority가 가장 높은 Router가 우선적으로 선출된다.
+- Priority가 같으면 Router ID가 높은 Router가 선출된다.
+- 나머지 Router는 DROther가 된다.
+
+6\. DROther는 DR 및 BDR과 Full Adjacency를 형성하고, 다른 DROther와는 `2-Way` 상태를 유지한다.
+- Point-to-Point Network에서는 DR과 BDR을 선출하지 않고 연결된 두 Router가 Full Adjacency를 형성한다.
+
+7\. DR과 BDR 선출은 `Non-Preemptive` 방식으로 동작한다.
+- 더 높은 Priority를 가진 Router가 나중에 연결되어도 기존 DR을 교체하지 않는다.
+- DR에 장애가 발생하면 BDR이 DR로 승격되고 새로운 BDR을 선출한다.
+
+8\. Full Adjacency를 형성하는 Router들은 `ExStart` 상태에서 Master와 Slave를 결정하고 DBD Sequence Number를 협상한다.
+- Router ID가 높은 Router가 Master가 된다.
+
+9\. `Exchange` 상태에서 DBD Packet으로 서로의 LSA Header 목록을 교환한다.
+- Master가 DBD Packet을 먼저 전송한다. 
+- Slave는 자신의 DBD Packet으로 응답한다. 
+- DBD Packet은 LSA Type, Link State ID, Advertising Router, Sequence Number 등의 요약 정보만 전달한다.
+
+10\. 각 Router는 수신한 LSA Header 목록과 자신의 LSDB를 비교한다.
+
+11\. 자신의 LSDB에 없거나 오래된 LSA가 있으면 `Loading` 상태에서 LSR Packet으로 요청한다.
+
+12\. 요청을 받은 Router는 LSU Packet에 LSA를 담아 전달한다.
+
+13\. LSU Packet을 수신한 Router는 LSAck Packet으로 LSA 수신을 확인한다.
+
+14\. 필요한 LSA 교환이 완료되면 `Full` 상태가 된다.
+- 같은 Area의 Router들은 동일한 LSA 정보를 가진 LSDB를 유지한다.
+
+15\. 같은 Area의 Router들은 Type 1과 Type 2 LSA로 Area 내부 Network를 학습한다.
+
+16\. ABR은 Type 1과 Type 2 LSA를 다른 Area로 그대로 전달하지 않고, Area 내부의 Network Prefix와 Cost를 Type 3 LSA로 광고한다.
+- ABR은 연결된 Area마다 별도의 LSDB를 유지하지만 하나의 Routing Table을 사용한다.
+
+17\. ASBR이 외부 Route를 OSPF로 Redistribution하면 Normal Area에서는 Type 5 LSA를 생성한다.
+- NSSA 내부에서 Redistribution하면 Type 7 LSA를 생성한다.
+
+18\. 다른 Area의 Router가 ASBR까지 도달할 수 있도록 ABR은 필요한 경우 Type 4 LSA를 광고한다.
+
+19\. 각 Router는 LSDB를 기반으로 SPF 알고리즘을 실행하여 Cost가 가장 낮은 경로를 Routing Table에 등록한다.
+
+20\. DROther에서 Network 변화가 발생하면 새로운 LSA를 LSU Packet에 담아 `224.0.0.6`으로 전송한다.
+- `224.0.0.6`은 DR과 BDR이 수신한다.
+
+21\. DR은 수신한 LSA를 `224.0.0.5`로 다시 Flooding한다.
+- `224.0.0.5`는 모든 OSPF Router가 수신한다.
+
+22\. 같은 Area의 Router들은 DR이 전달한 LSA로 LSDB를 갱신하고 SPF를 다시 계산하여 Routing Table을 갱신한다.
+
+
