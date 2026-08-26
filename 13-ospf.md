@@ -469,3 +469,296 @@ Area 2는 다른 Area의 상세 Route와 External Route를 학습할 필요가 �
 19\. R5는 자신의 Static Route를 사용하여 패킷을 Firewall인 `10.2.5.2`로 전달하고, Firewall은 패킷을 Server Network로 전달한다.
 
 20\. 최종적으로 Traffic은 `R4 → R2 → R3 → R5 → Firewall → 172.16.50.0/24` 순서로 전달된다.
+
+## 명령어
+
+OSPF Process를 생성하고 Router ID를 설정한다.
+```
+R1(config)# router ospf 1
+R1(config-router)# router-id 1.1.1.1
+```
+
+Interface에서 OSPF를 활성화하고 Area에 포함시킨다.
+```
+R1(config-router)# network 10.0.12.0 0.0.0.3 area 0
+R1(config-router)# network 10.1.1.0 0.0.0.255 area 1
+```
+
+OSPF Process가 시작된 이후 Router ID를 변경했다면 Process를 재시작해야 할 수 있다.
+```
+R1# clear ip ospf process
+```
+
+`network` 명령어 대신 Interface에서 직접 OSPF Process와 Area를 지정할 수 있다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# ip ospf 1 area 0
+```
+
+사용자 또는 Server처럼 OSPF Neighbor를 형성할 필요가 없는 Interface를 Passive Interface로 설정한다.
+```
+R1(config)# router ospf 1
+R1(config-router)# passive-interface gi0/2
+```
+
+모든 Interface를 Passive로 설정한 후 Neighbor를 형성할 Interface만 제외할 수 있다.
+```
+R1(config)# router ospf 1
+R1(config-router)# passive-interface default
+R1(config-router)# no passive-interface gi0/1
+```
+
+Interface의 OSPF Cost를 직접 설정한다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# ip ospf cost 10
+```
+
+Reference Bandwidth를 `10 Gbps`로 변경한다. Reference Bandwidth는 OSPF Domain의 모든 Router에 동일하게 설정해야 한다.
+```
+R1(config)# router ospf 1
+R1(config-router)# auto-cost reference-bandwidth 10000
+```
+
+ABR과 Area 1에 속한 모든 Router에 Stub Area를 설정한다.
+```
+R2(config)# router ospf 1
+R2(config-router)# area 1 stub
+```
+
+```
+R4(config)# router ospf 1
+R4(config-router)# area 1 stub
+```
+
+Totally Stubby Area는 Area 내부 Router에 `stub`을 설정하고 ABR에만 `no-summary`를 추가한다.
+```
+R2(config)# router ospf 1
+R2(config-router)# area 1 stub no-summary
+```
+
+```
+R4(config)# router ospf 1
+R4(config-router)# area 1 stub
+```
+
+ABR과 Area 2에 속한 모든 Router에 NSSA를 설정한다.
+```
+R3(config)# router ospf 1
+R3(config-router)# area 2 nssa
+```
+
+```
+R5(config)# router ospf 1
+R5(config-router)# area 2 nssa
+```
+
+일반 NSSA에 Type 7 Default Route를 광고한다.
+```
+R3(config)# router ospf 1
+R3(config-router)# area 2 nssa default-information-originate
+```
+
+Totally NSSA는 Area 내부 Router에 `nssa`를 설정하고 ABR에만 `no-summary`를 추가한다.
+```
+R3(config)# router ospf 1
+R3(config-router)# area 2 nssa no-summary
+```
+
+```
+R5(config)# router ospf 1
+R5(config-router)# area 2 nssa
+```
+
+Static Route를 OSPF로 Redistribution한다.
+```
+R5(config)# ip route 172.16.50.0 255.255.255.0 10.2.5.2
+
+R5(config)# router ospf 1
+R5(config-router)# redistribute static subnets
+```
+
+External Metric과 Metric Type을 지정할 수 있다.
+```
+R5(config)# router ospf 1
+R5(config-router)# redistribute static subnets metric 100 metric-type 1
+```
+
+Routing Table에 존재하는 Default Route를 OSPF Domain에 광고한다. 
+```
+R1(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+R1(config)# router ospf 1
+R1(config-router)# default-information originate
+```
+
+Routing Table에 Default Route가 없어도 강제로 광고하려면 `always`를 사용한다.
+```
+R1(config-router)# default-information originate always
+```
+
+ABR에서 Area 1의 내부 Route를 하나의 Type 3 Summary LSA로 광고한다.
+```
+R2(config)# router ospf 1
+R2(config-router)# area 1 range 10.1.0.0 255.255.252.0
+```
+
+ASBR에서 OSPF로 Redistribution되는 External Route를 요약한다.
+```
+R5(config)# router ospf 1
+R5(config-router)# summary-address 172.16.48.0 255.255.252.0
+```
+
+Area 1의 특정 Network 범위를 다른 Area에 광고하지 않는다.
+```
+R2(config)# router ospf 1
+R2(config-router)# area 1 range 10.1.0.0 255.255.0.0 not-advertise
+```
+
+Prefix List를 사용하여 `10.1.35.0/24`가 Area 2로 들어오는 것을 차단한다.
+```
+R3(config)# ip prefix-list BLOCK35 seq 5 deny 10.1.35.0/24
+R3(config)# ip prefix-list BLOCK35 seq 10 permit 0.0.0.0/0 le 32
+
+R3(config)# router ospf 1
+R3(config-router)# area 2 filter-list prefix BLOCK35 in
+```
+
+OSPF Neighbor와 Neighbor State를 확인한다.
+```
+R1# show ip ospf neighbor
+```
+
+OSPF가 활성화된 Interface와 Area를 확인한다.
+```
+R1# show ip ospf interface brief
+```
+
+OSPF Process, Router ID 및 Area 정보를 확인한다.
+```
+R1# show ip ospf
+```
+
+OSPF LSDB를 확인한다.
+```
+R1# show ip ospf database
+```
+
+OSPF로 학습한 Route를 확인한다.
+```
+R1# show ip route ospf
+```
+
+OSPF Network 설정과 Redistribution 정보를 확인한다.
+```
+R1# show ip protocols
+```
+
+---
+
+## Troubleshooting
+
+### OSPF Neighbor가 형성되지 않는 경우
+
+1\. Interface와 IP Address가 정상인지 확인한다.
+```
+R1# show ip interface brief
+R1# ping 10.0.12.2
+```
+
+2\. 양쪽 Interface에서 OSPF가 활성화되어 있고 같은 Area에 포함되어 있는지 확인한다.
+```
+R1# show ip ospf interface brief
+R1# show running-config | section router ospf
+```
+
+3\. 양쪽 Router의 다음 설정이 일치하는지 확인한다.
+- Area ID
+- Area Type
+- Subnet Mask
+- Hello/Dead Interval
+- Authentication
+- Network Type
+
+4\. Interface가 Passive Interface로 설정되어 있는지 확인한다.
+```
+R1# show ip protocols
+```
+
+5\. Router ID가 다른 Router와 중복되지 않았는지 확인한다.
+```
+R1# show ip ospf
+R1# show ip ospf neighbor
+```
+
+6\. ACL이나 Firewall에서 OSPF의 IP Protocol Number `89` 또는 Multicast Traffic을 차단하는지 확인한다.
+- `224.0.0.5`, `224.0.0.6`
+
+7\. Neighbor가 `ExStart` 또는 `Exchange` 상태에서 멈추면 양쪽 Interface의 MTU와 Router ID 중복 여부를 확인한다.
+```
+R1# show interfaces gi0/1
+R1# show ip ospf interface gi0/1
+```
+
+### OSPF Route를 학습하지 못하는 경우
+
+1\. OSPF Neighbor가 `Full` 상태인지 확인한다.
+```
+R1# show ip ospf neighbor
+```
+
+2\. 해당 Network의 LSA가 LSDB에 존재하는지 확인한다.
+```
+R1# show ip ospf database
+```
+
+3\. OSPF Route가 Routing Table에 등록되어 있는지 확인한다.
+```
+R1# show ip route ospf
+R1# show ip route 10.1.1.0
+```
+
+4\. `network` 명령어의 Network Address, Wildcard Mask 및 Area가 올바른지 확인한다.
+```
+R1# show running-config | section router ospf
+```
+
+5\. Stub, Totally Stubby, NSSA와 같은 Area Type에 의해 필요한 LSA가 차단되고 있는지 확인한다.
+
+6\. `area filter-list prefix`, `not-advertise` 또는 Route Map에 의해 Route가 차단되고 있는지 확인한다.
+
+7\. External Route라면 ASBR의 Routing Table에 원본 Route가 존재하는지 확인하고 Redistribution 설정을 확인한다.
+```
+R5# show ip route static
+R5# show ip protocols
+R5# show ip ospf database external
+R5# show ip ospf database nssa-external
+```
+
+## 주요 질문
+
+OSPF는 어떤 Routing Protocol인가?
+- OSPF는 LSA를 교환하여 LSDB를 구성하고, SPF 알고리즘으로 Cost가 가장 낮은 경로를 선택하는 Link-State Routing Protocol이다.
+
+OSPF Process ID가 Neighbor Router와 같아야 하는가?
+- Process ID는 Router 내부에서만 의미가 있으므로 서로 달라도 Neighbor를 형성할 수 있다.
+
+OSPF Neighbor를 형성하려면 어떤 설정이 일치해야 하는가?
+- Area ID, Area Type, Subnet Mask, Hello/Dead Interval 및 Authentication 설정이 일치해야 한다.
+
+OSPF에서 DR과 BDR을 선출하는 이유와 기준은 무엇인가?
+- 모든 Router가 서로 Full Adjacency를 형성할 때 발생하는 LSA 교환량과 부하를 줄이기 위해 선출한다.
+- Interface Priority가 높은 Router가 우선이며, Priority가 같으면 Router ID가 높은 Router가 선출된다.
+
+OSPF Router ID는 어떻게 결정되는가?
+- 직접 설정한 Router ID, 가장 높은 Loopback IP Address, 가장 높은 Physical Interface IP Address 순서로 결정된다.
+
+LSA와 LSU의 차이는 무엇인가?
+- LSA는 Link-State 정보를 담은 정보 단위이고, LSU는 하나 이상의 LSA를 전달하는 OSPF Packet이다.
+
+ABR과 ASBR의 차이는 무엇인가?
+- ABR은 Area 0과 Non-Backbone Area를 연결하고, ASBR은 외부 Route를 OSPF로 Redistribution한다.
+
+Stub Area와 NSSA의 차이는 무엇인가?
+- 두 Area 모두 다른 Area에서 들어오는 Type 4와 Type 5 LSA를 차단한다.
+- Stub Area는 내부 Redistribution을 허용하지 않지만 NSSA는 Type 7 LSA를 사용하여 내부 Redistribution을 허용한다.
