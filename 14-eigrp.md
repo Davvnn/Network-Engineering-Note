@@ -327,3 +327,203 @@ R3의 RD 2200 < R4의 FD 2500
 - R3 경로는 Feasibility Condition도 만족하므로 R2와 R3 경로가 모두 Routing Table에 등록된다.
 - Metric이 낮은 R2 경로에 더 많은 Traffic이 전달된다.
 
+---
+
+## 명령어
+
+### Classic Mode
+
+EIGRP AS `100`을 생성하고 지정한 IPv4 Interface에서 EIGRP를 활성화한다.
+```
+R1(config)# router eigrp 100
+R1(config-router)# network 10.0.12.0 0.0.0.3
+R1(config-router)# network 172.16.10.0 0.0.0.255
+```
+
+모든 Interface를 Passive로 설정한 후 Neighbor를 형성할 Interface만 제외한다.
+```
+R1(config)# router eigrp 100
+R1(config-router)# passive-interface default
+R1(config-router)# no passive-interface gi0/1
+```
+
+Unequal-Cost Load Balancing을 설정한다.
+```
+R4(config)# router eigrp 100
+R4(config-router)# variance 2
+R4(config-router)# maximum-paths 4
+```
+
+Branch Router를 EIGRP Stub으로 설정하고 Connected Route와 Summary Route만 광고한다.
+```
+R4(config)# router eigrp 100
+R4(config-router)# eigrp stub connected summary
+```
+
+R1이 R2 방향으로 광고하는 여러 Route를 `172.16.8.0/21`로 요약한다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# ip summary-address eigrp 100 172.16.8.0 255.255.248.0
+```
+
+### Named Mode
+
+Named EIGRP를 생성하고 IPv4 AS `100`을 설정한다.
+```
+R1(config)# router eigrp CORP-EIGRP
+R1(config-router)# address-family ipv4 unicast autonomous-system 100
+R1(config-router-af)# network 10.0.12.0 0.0.0.3
+R1(config-router-af)# network 172.16.10.0 0.0.0.255
+```
+
+Named Mode에서 Interface를 Passive로 설정한다.
+```
+R1(config-router-af)# af-interface gi0/2
+R1(config-router-af-interface)# passive-interface
+R1(config-router-af-interface)# exit-af-interface
+```
+
+Named Mode에서 Variance를 설정한다.
+```
+R4(config-router-af)# topology base
+R4(config-router-af-topology)# variance 2
+R4(config-router-af-topology)# maximum-paths 4
+```
+
+Named Mode에서 Branch Router를 EIGRP Stub으로 설정한다.
+```
+R4(config-router-af)# eigrp stub connected summary
+```
+
+### 확인 명령어
+
+EIGRP Neighbor를 확인한다.
+```
+R1# show ip eigrp neighbors
+```
+
+EIGRP가 활성화된 Interface를 확인한다.
+```
+R1# show ip eigrp interfaces
+```
+
+EIGRP Topology Table과 Successor, FD, RD를 확인한다.
+```
+R1# show ip eigrp topology
+```
+
+EIGRP로 학습한 Route를 확인한다.
+```
+R1# show ip route eigrp
+```
+
+EIGRP AS Number, K-values, Network, Passive Interface 및 Redistribution 정보를 확인한다.
+```
+R1# show ip protocols
+```
+
+---
+
+## Troubleshooting
+
+### EIGRP Neighbor가 형성되지 않는 경우
+
+1\. Interface와 IP Address가 정상인지 확인한다.
+```
+R1# show ip interface brief
+R1# ping 10.0.12.2
+```
+
+2\. 양쪽 Interface에서 EIGRP가 활성화되어 있는지 확인한다.
+```
+R1# show ip eigrp interfaces
+R1# show running-config | section router eigrp
+```
+
+3\. 양쪽 Router의 AS Number가 같은지 확인한다.
+```
+R1# show ip protocols
+```
+
+4\. 양쪽 Router의 K-values가 같은지 확인한다.
+- 기본값은 `K1=1, K2=0, K3=1, K4=0, K5=0`이다.
+- K-values가 다르면 Neighbor를 형성할 수 없다.
+```
+R1# show ip protocols
+```
+
+5\. 연결 Interface가 Passive Interface로 설정되어 있는지 확인한다.
+```
+R1# show ip protocols
+```
+
+6\. Authentication을 사용한다면 Key Chain, Key 및 Authentication Mode가 일치하는지 확인한다.
+
+7\. ACL이나 Firewall이 EIGRP Protocol Number `88` 또는 `224.0.0.10` Multicast Traffic을 차단하는지 확인한다.
+
+
+### EIGRP Route를 학습하지 못하거나 경로가 비정상인 경우
+
+1\. 목적지까지 Ping과 Traceroute를 실행하여 도달 여부와 실제 경로를 확인한다.
+```
+R1# ping 172.16.10.10
+R1# traceroute 172.16.10.10
+```
+
+2\. EIGRP Neighbor가 정상적으로 형성되어 있는지 확인한다.
+```
+R1# show ip eigrp neighbors
+```
+
+3\. 목적지 Route가 Topology Table에 존재하는지 확인한다.
+```
+R1# show ip eigrp topology 172.16.10.0/24
+R1# show ip eigrp topology all-links
+```
+
+4\. Successor Route가 Routing Table에 등록되어 있는지 확인한다.
+```
+R1# show ip route eigrp
+```
+
+5\. `network` 명령어의 Network Address와 Wildcard Mask가 해당 Interface를 포함하는지 확인한다.
+```
+R1# show running-config | section router eigrp
+R1# show ip eigrp interfaces
+```
+
+6\. 더 낮은 AD 값을 가진 Static Route나 다른 Routing Protocol의 Route가 EIGRP Route보다 우선하는지 확인한다.
+
+---
+
+## 주요 질문
+
+EIGRP는 어떤 Routing Protocol인가?
+- EIGRP는 Neighbor에게 받은 Route 정보를 기반으로 DUAL을 실행하여 Loop 없는 최적 경로와 Backup 경로를 계산하는 Distance-Vector Routing Protocol이다.
+
+EIGRP가 사용하는 IP Protocol Number와 Multicast Address는 무엇인가?
+- IP Protocol Number `88`과 IPv4 Multicast Address `224.0.0.10`을 사용한다.
+
+EIGRP Neighbor를 형성하려면 어떤 설정이 일치해야 하는가?
+- AS Number와 K-values가 같아야 하며, Authentication을 사용하면 인증 설정도 같아야 한다.
+
+EIGRP의 Hello/Hold Interval이 달라도 Neighbor를 형성할 수 있는가?
+- 각 Router가 자신의 Hold Time을 Hello Packet으로 전달하므로 Hello/Hold Interval이 달라도 Neighbor를 형성할 수 있다.
+
+EIGRP가 사용하는 세 가지 Table은 무엇인가?
+- Neighbor Table, Topology Table, Routing Table을 사용한다.
+
+Successor와 Feasible Successor의 차이는 무엇인가?
+- Successor는 Routing Table에 등록되는 최적 경로이고, Feasible Successor는 Successor 장애 시 즉시 사용할 수 있는 Loop 없는 Backup 경로이다.
+
+Feasible Distance와 Reported Distance의 차이는 무엇인가?
+- FD는 현재 Router가 목적지까지 계산한 Metric이고, RD는 Neighbor가 해당 목적지까지 계산하여 광고한 Metric이다.
+
+Feasibility Condition은 무엇인가?
+- Neighbor의 RD가 현재 Successor의 FD보다 작아야 해당 경로를 Feasible Successor로 사용할 수 있다는 조건이다.
+
+EIGRP Route의 Passive와 Active 상태는 무엇인가?
+- Passive는 경로 계산이 완료된 정상 상태이고, Active는 Feasible Successor가 없어 Query를 보내고 대체 경로를 계산하는 상태이다.
+
+Successor에 장애가 발생하면 EIGRP는 어떻게 동작하는가?
+- Feasible Successor가 있으면 즉시 경로를 전환하고, 없으면 Route를 Active 상태로 전환하여 Neighbor에게 Query를 보낸다.
