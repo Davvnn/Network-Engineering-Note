@@ -424,7 +424,7 @@ Area 0의 Router들도 해당 Server Network와 통신해야 하므로 R5의 Sta
 
 Area 2는 다른 Area의 상세 Route와 External Route를 학습할 필요가 없어 Totally NSSA로 구성한다.
 
-![](images/14-ospf-area.png)
+![](images/13-ospf-area.png)
 
 1\. R1, R2, R3는 Area 0에서 OSPF Neighbor를 형성하고 LSA를 교환하여 LSDB를 구성한다.
 - Area 0은 Type 1, 2, 3, 4, 5 LSA를 허용하는 Normal Area이다.
