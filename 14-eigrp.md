@@ -291,3 +291,39 @@ R1(config-router-af)# exit-address-family
 
 ## 예시 및 구성도
 
+### Neighbor and Route Selection
+
+회사 사용자들은 R4에 연결되어 있으며, 기존의 R1, R2, R4는 EIGRP AS `100`으로 구성되어 있다. 사용자들은 R1의 `172.16.10.0/24` Server Network에 접속할 때 R2를 통하는 경로를 사용하고 있다. 하지만 R2 경로에 장애가 발생하면 통신이 중단될 수 있으므로, 관리자는 이중화를 위해 R3를 R1과 R4에 연결하고 EIGRP AS `100`을 활성화하였다.  R3는 Server Network의 Route를 R4에 광고하여 Backup 경로를 제공한다.  
+
+![](images/14-eigrp-eg.png)
+
+1. R3는 EIGRP가 활성화된 Interface에서 Hello Packet을 전송한다.
+
+2. R1과 R4는 R3의 Hello Packet을 수신하고 AS Number, K-values 및 Authentication 설정 등을 확인한다.
+
+3. 설정이 일치하면 R3는 R1 및 R4와 각각 EIGRP Neighbor를 형성한다.
+
+4. R1은 `172.16.10.0/24` Server Network를 Update Packet으로 R3에게 광고한다.
+
+5. R3는 R1에게 학습한 Server Network의 Route를 Topology Table에 저장하고 R4에게 광고한다.
+
+6. R4는 기존 R2 경로와 새로 학습한 R3 경로를 Topology Table에 저장한다.
+- R2 경로: R2의 RD `2000`, R4가 계산한 전체 Metric `2500` 
+- R3 경로: R3의 RD `2200`, R4가 계산한 전체 Metric `3000`
+
+7. R4는 전체 Metric이 더 낮은 R2 경로를 Successor로 선택한다.
+
+8. R4는 R3 경로가 Feasibility Condition을 만족하는지 확인한다.
+```
+R3의 RD 2200 < R4의 FD 2500
+```
+
+9. R3의 RD가 R4의 FD보다 작으므로 R3 경로는 Feasible Successor가 된다.
+- R3 경로는 Backup 경로로 Topology Table에 유지된다.
+
+10. R2 경로에 장애가 발생하면 R4는 Query를 보내지 않고 R3 경로를 즉시 Successor로 변경한다.
+
+11. R4에 `variance 2`를 설정하면 R3 경로의 Metric `3000`은 `2500 × 2` 범위 안에 포함된다.
+- R3 경로는 Feasibility Condition도 만족하므로 R2와 R3 경로가 모두 Routing Table에 등록된다.
+- Metric이 낮은 R2 경로에 더 많은 Traffic이 전달된다.
+
