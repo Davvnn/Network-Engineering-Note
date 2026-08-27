@@ -52,7 +52,7 @@ iBGP로 학습한 Route의 Cisco 기본 Administrative Distance는 `200`이다.
  
 eBGP는 Route를 다른 AS로 광고할 때 Next-Hop을 자신으로 변경한다.
 
- iBGP는 외부 AS에서 eBGP로 학습한 Route를 같은 AS 내부의 iBGP Neighbor에게 광고할 때, 기존 Next-Hop을 그대로 유지한다.    
+iBGP는 외부 AS에서 eBGP로 학습한 Route를 같은 AS 내부의 iBGP Neighbor에게 광고할 때, 기존 Next-Hop을 그대로 유지한다.    
 - `next-hop-self`를 사용하여 자신을 Next-Hop으로 변경할 수 있다.    
   
 ### iBGP Route 재광고 규칙  
@@ -81,6 +81,31 @@ iBGP Router가 `n`대일 때 필요한 Session 수는 다음과 같다.
 예를 들어 iBGP Router가 4대라면 총 6개의 iBGP Session이 필요하다. 
  
 대규모 Network에서는 iBGP Session 수를 줄이기 위해 Route Reflector를 사용할 수 있다. 
+
+###  Route Reflector
+
+iBGP로 학습한 Route는 다른 iBGP Neighbor에게 다시 광고하지 않는다, 기본 iBGP 환경에서는 모든 Router가 서로 Neighbor를 형성하는 Full Mesh 구성이 필요하다.
+
+Route Reflector(RR)는 iBGP로 학습한 Route를 다른 iBGP Neighbor에게 다시 광고하여 Full Mesh 구성을 줄이는 Router이다.
+
+Route Reflector와 Neighbor를 형성하고 Route를 전달받는 Router를 RR Client라고 한다.
+
+RR Client는 다른 Client와 직접 Neighbor를 형성하지 않아도 Route Reflector를 통해 BGP Route를 교환할 수 있다.
+
+![](images/15-bgp-route-reflector.png)
+
+R2를 Route Reflector로 구성하려면 R4, R5를 RR Client로 지정한다.
+- R3는 외부 AS로부터 eBGP Route를 직접 광고받으므로 RR Client로 지정할 필요가 없으며, R4와 R5만 RR Client로 지정한다.
+```
+R2(config)# router bgp 65001
+R2(config-router)# neighbor 10.1.23.3 remote-as 65001
+R2(config-router)# neighbor 10.1.24.4 remote-as 65001
+R2(config-router)# neighbor 10.1.24.4 route-reflector-client
+R2(config-router)# neighbor 10.1.25.5 remote-as 65001
+R2(config-router)# neighbor 10.1.25.5 route-reflector-client
+```
+
+Route Reflector는 Route를 전달할 때 Next-Hop을 변경하지 않기 때문에, 필요한 경우 `next-hop-self`를 설정해야 한다.
 
 ### BGP Neighbor
 
