@@ -231,7 +231,7 @@ Cisco BGP의 주요 Best Path 선택 순서는 다음과 같다.
 
 #### Weight
 
-Cisco Router 내부에서만 사용하는 로컬 우선순위이며, 다른 BGP Router로 전달되지 않는다.  
+Cisco Router 내부에서만 사용하는 로컬 우선순위이며, 해당 Router에서 외부 Network로 나가는 경로가 여러 개일 때 어떤 경로를 우선 사용할지 결정하는 Cisco 전용 값이다.  
 - 값이 높을수록 우선한다.	
 - 다른 BGP Router에서 학습 받은 Route의 기본값은 0이다. 
 - 로컬 Router에서 직접 생성한 Route의 기본값은 32768이다.
@@ -242,6 +242,10 @@ Cisco Router 내부에서만 사용하는 로컬 우선순위이며, 다른 BGP 
 - 값이 높을수록 우선한다.
 - Cisco 기본값은 `100`이다.
 - Local Preference 값은 같은 AS의 iBGP Neighbor에게 Route와 함께 전달되는 값이다.
+
+Weight → 내 Router만의 경로 선택 
+
+Local Preference → 같은 AS 전체의 경로 선택  
 
 #### AS-Path
 
