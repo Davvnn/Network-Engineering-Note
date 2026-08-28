@@ -267,3 +267,65 @@ Route가 BGP에 등록된 방식을 나타낸다.
 ---
 
 ## 동작 원리
+
+### BGP Neighbor 형성 과정
+
+BGP Neighbor를 형성하려면 양쪽 Router에 상대방의 Neighbor IP Address와 Remote AS를 설정해야 한다.
+
+![](images/15-bgp-neighbor.png)
+
+1\. R1과 R2는 `Idle` 상태에서 BGP Process를 Neighbor 연결을 시작한다.
+
+2\. Router는 Routing Table을 확인하여 설정한 Neighbor IP Address까지 도달할 수 있는지 확인한다.
+
+3\. Neighbor IP Address에 도달할 수 있으면 `Connect` 상태에서 TCP Port `179`를 사용하여 TCP `3-Way Handshake`를 진행한다.
+- TCP 연결에 실패하면 `Active` 상태에서 TCP 연결을 다시 시도하며, BGP 정보에 오류가 있으면 `Notification Message`를 전송한 후 Session을 종료한다.
+
+4\. TCP 연결이 완료되면 R1과 R2는 서로 `Open Message`를 전송하고 `OpenSent` 상태가 된다.
+- Open Message에는 BGP Version, ASN, Hold Time 및 Router ID 등의 정보가 포함된다.
+
+5\. 상대방의 Open Message를 받아 BGP Version, ASN, Hold Time 및 Router ID를 확인한다.
+- 정보에 오류가 있으면 `Notification Message`를 전송하고 BGP Session을 종료한다.
+
+6\. Open Message의 정보가 정상이면 `Keepalive Message`를 전송하고 `OpenConfirm` 상태가 된다.
+
+7\. 상대방의 Keepalive Message를 받으면 BGP Neighbor가 정상적으로 형성되고 `Established` 상태가 된다.
+
+8\. Established 상태에서는 `Update Message`를 사용하여 Route와 Path Attribute를 교환하고, `Keepalive Message`를 주기적으로 교환하여 Session을 유지한다.
+
+### BGP Route 처리 과정
+
+1\. BGP Router가 Neighbor로부터 Update 메시지를 수신한다.
+
+2\. 수신한 Route의 AS-Path에 자신의 ASN이 포함되어 있는지 확인한다.
+- 자신의 ASN이 포함되어 있으면 Loop로 판단하고 해당 Route를 거부한다.
+
+3\. Inbound Policy가 설정되어 있으면 Route가 정책을 통과하는지 확인한다.
+
+4\. Next-Hop에 도달할 수 있는지 확인한다.
+
+5\. 동일 Prefix의 여러 경로가 있으면 Path Attribute를 순서대로 비교하여 Best Path를 선택한다.
+
+6\. 선택한 Best Path를 Routing Table에 설치한다.
+
+7\. 선택한 Best Path가 BGP 재광고 규칙과 Outbound Policy에 맞으면 다른 Neighbor에게 광고한다.  
+
+### eBGP에서 iBGP로 Route를 전달하는 과정
+
+1\. 외부 AS의 Router가 eBGP Neighbor에게 Network를 광고한다.
+
+2\. eBGP Router는 Route를 수신하고 외부 Neighbor를 Next-Hop으로 설정한다.
+
+3\. eBGP Router가 같은 AS의 iBGP Neighbor에게 해당 Route를 전달한다.
+
+4\. iBGP는 Next-Hop을 변경하지 않기 때문에 외부 Router의 IP Address가 그대로 유지된다.
+
+5\. 내부 Router가 외부 Next-Hop에 도달할 수 없으면 Route를 Routing Table에 설치하지 못한다.
+
+6\. eBGP Router에서 iBGP Neighbor 방향으로 `next-hop-self`를 설정한다.
+
+7\. 내부 Router가 수신한 Route의 Next-Hop이 eBGP Router로 변경된다.
+
+8\. 내부 Router가 변경된 Next-Hop에 도달할 수 있으면 Route를 Best Path로 선택하고 Routing Table에 설치한다.
+
+---
