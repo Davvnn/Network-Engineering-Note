@@ -103,3 +103,6 @@ Route Tag는 Redistribution된 Route가 원래 어느 Routing Protocol에서 왔
 - EIGRP Route가 `EIGRP → OSPF → EIGRP`로 다시 되돌아오는 것을 막는 것이다.
 
 ---
+
+## 동작 원리
+
