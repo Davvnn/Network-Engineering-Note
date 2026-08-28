@@ -106,3 +106,42 @@ Route Tag는 Redistribution된 Route가 원래 어느 Routing Protocol에서 왔
 
 ## 동작 원리
 
+### Route Redistribution
+
+1\. R2는 OSPF Process `1`과 EIGRP AS `100`을 모두 실행한다.
+
+2\. R2는 EIGRP와 OSPF에서 Route를 학습하고 최적 Route를 자신의 Routing Table에 등록한다.
+- 같은 Network를 여러 Routing Protocol에서 학습하면 Administrative Distance가 낮은 Route가 등록된다.
+
+3\. EIGRP Route가 R2의 Routing Table에 등록되면 R2는 해당 Network로 패킷을 전달할 수 있다.
+- 하지만 R2의 Routing Table에 EIGRP Route가 등록되었다고 해서 OSPF Router들에게 자동으로 광고되는 것은 아니다.
+- OSPF는 EIGRP로 학습한 Route를 자동으로 광고하지 않는다.
+
+4\. OSPF Router들도 EIGRP Network를 학습하도록 R2에서 EIGRP Route를 OSPF로 Redistribution한다.
+```
+R2(config)# router ospf 1
+R2(config-router)# redistribute eigrp 100 subnets
+```
+
+5\. R2는 Routing Table에 EIGRP Route로 등록된 Route를 확인하고 OSPF로 전달한다.
+- Filtering을 설정하지 않으면 Routing Table에 등록된 EIGRP Route들이 모두 OSPF Domain으로 전달될 수 있다.
+
+6\. R2는 EIGRP Route에 OSPF가 사용할 Seed Metric과 External Route Type을 적용한다.
+- Metric을 따로 설정하지 않으면 Seed Metric `20`을 사용한다.
+- Route Type을 따로 설정하지 않으면 기본값인 `E2`를 사용한다.
+
+7\. R2는 EIGRP Route를 OSPF External Route로 광고하며 OSPF에서 ASBR로 동작한다.
+
+8\. OSPF Router들은 Redistribution된 EIGRP Route를 `O E1` 또는 `O E2` Route로 학습한다.
+- Redistribution을 수행한 R2에서는 EIGRP Route는 `D`로 유지된다.
+
+9\. 반대로 EIGRP Router들도 OSPF Network를 학습해야 한다면 OSPF Route를 EIGRP로 Redistribution한다.
+```
+R2(config)# router eigrp 100
+R2(config-router)# redistribute ospf 1 metric 100000 100 255 1 1500
+```
+
+10\. EIGRP Router들은 Redistribution된 OSPF Route를 EIGRP External Route인 `D EX`로 학습한다.
+
+11\. 양쪽 Routing Domain이 서로의 Route를 학습하면 EIGRP Network와 OSPF Network가 양방향으로 통신할 수 있다.
+- 한쪽 방향의 Route만 전달하면 돌아오는 Route가 없을 수 있으므로 Return Route도 확인해야 한다.
