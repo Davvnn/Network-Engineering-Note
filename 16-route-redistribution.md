@@ -31,7 +31,7 @@ Seed Metric은 다른 Routing Protocol에서 전달받은 Route를 자신의 Rou
 
 #### EIGRP Seed Metric
 
-다른 Dynamic Routing Protocol의 Route를 EIGRP로 Redistribution할 때는 다음 다섯 값을 직접 지정하거나 `default-metric`을 설정해야 한다. `default-metric`을 설정하면 다섯 값을 따로 지정하지 않아도 된다.  
+다른 Dynamic Routing Protocol의 Route를 EIGRP로 Redistribution할 때는 다섯 개의 Metric 값을 직접 지정해야 한다. `default-metric`으로 공통 Metric을 설정하면 redistribute 명령어마다 다섯 값을 반복해서 지정하지 않아도 된다.
 ```
 R2(config)# router eigrp 100
 R2(config-router)# redistribute ospf 1 metric 100000 100 255 1 1500
