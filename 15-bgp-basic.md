@@ -260,7 +260,7 @@ Route가 BGP에 등록된 방식을 나타낸다.
 - `i` → `e` → `?` 순서로 우선한다.
 - `i` (IGP): `network` 명령으로 BGP에 직접 등록된 Route이다.
 - `e` (EGP): 과거의 EGP Routing Protocol을 통해 학습된 Route이며 현재는 거의 사용하지 않는다.
-- `?`: OSPF, EIGRP 같은 다른 Routing Protocol의 Route를 Redistribution하여 출처가 명확하지 않은 Route이다.
+- `?` (Incomplete): OSPF, EIGRP 같은 다른 Routing Protocol의 Route를 Redistribution하여 출처가 명확하지 않은 Route이다.
 
 #### MED
 
