@@ -193,3 +193,110 @@ R1(config-router)# redistribute ospf 1
 
 `redistribute`는 여러 Route가 함께 광고될 수 있으므로 `Route-Map`이나 `Prefix-List`를 사용하여 필요한 Route만 제한하는 것이 좋다.
 
+### AS-Path Loop Prevention
+
+AS-Path는 Route가 거쳐온 ASN의 목록이다.
+
+BGP Router는 다른 AS에게 Route를 광고할 때 자신의 ASN을 AS-Path 앞에 추가한다.
+
+eBGP로 Route를 수신했을 때 AS-Path 안에 자신의 ASN이 포함되어 있으면 Routing Loop로 판단하고 해당 Route를 받지 않는다.
+
+### BGP Best Path Selection 
+ 
+BGP는 여러 Route가 있을 때 아래 순서대로 위에서부터 하나씩 비교하여 Best Path를 선택한다. 
+ 
+1\. Weight 
+
+2\. Local Preference 
+
+3\. Locally Originated 
+
+4\. AS-Path 
+
+5\. Origin 
+
+6\. MED 
+
+7\. eBGP over iBGP 
+
+8\. Lowest IGP Metric to Next-Hop 
+
+9\. Oldest eBGP Path 
+
+10\. Lowest Router ID 
+
+11\. Shortest Cluster List 
+
+12\. Lowest Neighbor IP Address 
+  
+일반적인 환경에서는 다른 BGP Router에서 학습한 Route의 Weight가 `0`이고, Local Preference도 기본값 `100`을 사용하는 경우가 많다. 또한 Locally Originated Route가 아닌 외부에서 학습한 Route끼리 비교하는 경우가 많기 때문에, 실질적으로 AS-Path부터 경로 차이가 발생하는 경우가 많다. 
+
+### 주요 Path Attribute
+
+#### Weight
+
+Cisco Router 내부에서만 사용하는 로컬 우선순위이며, 다른 BGP Router로 전달되지 않는다.  
+- 값이 높을수록 우선한다.	
+- 다른 BGP Router에서 학습 받은 Route의 기본값은 0이다. 
+- 로컬 Router에서 직접 생성한 Route의 기본값은 32768이다.
+
+#### Local Preference
+
+같은 AS에서 외부 Network로 나가는 경로가 여러 개일 때 어떤 출구를 우선 사용할지 결정한다.     
+- 값이 높을수록 우선한다.
+- Cisco 기본값은 `100`이다.
+- Local Preference 값은 같은 AS의 iBGP Neighbor에게 Route와 함께 전달되는 값이다.
+
+#### AS-Path
+
+목적지까지 거쳐야 하는 ASN의 목록이다.  
+- AS-Path가 짧을수록 우선한다.
+- eBGP로 Route를 광고할 때 자신의 ASN을 AS-Path에 추가한다.
+- AS-Path에 자신의 ASN이 포함되어 있으면 Routing Loop로 판단하고 해당 Route를 받지 않는다.
+
+#### Origin
+
+Route가 BGP에 등록된 방식을 나타낸다.  
+- `i` → `e` → `?` 순서로 우선한다.
+- `i` (IGP): `network` 명령으로 BGP에 직접 등록된 Route이다.
+- `e` (EGP): 과거의 EGP Routing Protocol을 통해 학습된 Route이며 현재는 거의 사용하지 않는다.
+- `?`: OSPF, EIGRP 같은 다른 Routing Protocol의 Route를 Redistribution하여 출처가 명확하지 않은 Route이다.
+
+#### MED
+
+상대 AS에게 우리 AS로 들어올 때 어떤 경로를 우선해서 사용하면 되는지 알려주는 값이다.  
+- 값이 낮을수록 우선한다.
+- 같은 AS에서 광고받은 여러 경로끼리 MED 값을 비교한다.  
+
+### BGP Best Path
+
+BGP는 동일한 Prefix에 여러 경로가 존재하면 Path Attribute를 비교하여 Best Path를 선택한다.
+
+Cisco BGP의 주요 Best Path 선택 순서는 다음과 같다.
+
+1\. Next-Hop에 도달할 수 있는 Route만 Best Path 후보로 사용한다.
+
+2\. Weight가 가장 높은 Route를 선택한다.
+
+3\. Local Preference가 가장 높은 Route를 선택한다.
+
+4\. Local Router에서 생성한 Route를 선택한다.
+
+5\. AS-Path가 가장 짧은 Route를 선택한다.
+
+6\. Origin Type이 가장 낮은 Route를 선택한다.
+- `IGP(i)` → `EGP(e)` → `Incomplete(?)` 순서로 선호한다.
+
+7\. MED가 가장 낮은 Route를 선택한다.
+- 기본적으로 같은 인접 AS에서 받은 경로끼리 비교한다.
+
+8\. eBGP로 학습한 Route를 iBGP로 학습한 Route보다 우선한다.
+
+9\. BGP Next-Hop까지의 IGP Metric이 가장 낮은 Route를 선택한다.
+
+10\. 두 경로가 모두 eBGP Route라면 가장 오래된 Route를 선택한다.
+
+11\. Neighbor의 BGP Router ID가 가장 낮은 Route를 선택한다.
+
+12\. 마지막으로 Neighbor IP Address가 가장 낮은 Route를 선택한다.
+
