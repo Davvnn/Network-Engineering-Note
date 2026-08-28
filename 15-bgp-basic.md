@@ -329,3 +329,193 @@ BGP Neighbor를 형성하려면 양쪽 Router에 상대방의 Neighbor IP Addres
 8\. 내부 Router가 변경된 Next-Hop에 도달할 수 있으면 Route를 Best Path로 선택하고 Routing Table에 설치한다.
 
 ---
+
+## 예시 및 구성도
+
+### eBGP와 iBGP를 사용한 외부 Network 학습
+
+![](images/15-bgp-eg.png)
+
+한 회사는 AS `65001`을 사용하고 있으며 내부에는 R1과 R2가 있다.
+
+R2는 AS `65002`의 ISP Router인 R3와 eBGP Neighbor를 형성하고, R1과는 iBGP Neighbor를 형성한다.
+
+R1과 R2는 물리 Link 장애 시에도 iBGP Session을 유지할 수 있도록 Loopback IP Address로 Neighbor를 형성하였고, 내부 IGP를 통해 서로의 Loopback에 도달할 수 있다.
+
+R3는 `203.0.113.0/24` Network를 R2에게 광고하고, R2는 해당 Route를 R1에게 전달한다.
+
+1\. R2와 R3는 서로 다른 AS를 사용하므로 eBGP Neighbor를 형성한다.
+
+2\. R1과 R2는 같은 AS `65001`을 사용하므로 iBGP Neighbor를 형성한다.
+
+3\. R1과 R2는 Loopback으로 Neighbor를 형성하므로 양쪽에 `update-source loopback0`를 설정한다.
+
+4\. R3의 Routing Table에 `203.0.113.0/24`는 `network` 명령으로 BGP에 등록한다.
+
+5\. R3는 `203.0.113.0/24`를 eBGP Neighbor인 R2에게 광고한다.
+
+6\. R2가 수신한 Route의 Next-Hop은 R3의 eBGP Interface IP Address이다.
+
+7\. R2는 해당 Route를 iBGP Neighbor인 R1에게 전달하지만 Next-Hop은 변경하지 않는다.
+
+8\. R1이 R3의 eBGP Interface IP Address에 도달할 수 없으면 해당 Route를 Routing Table에 설치하지 못한다.
+
+9\. R2에서 R1 Neighbor 방향에 `next-hop-self`를 설정한다.
+
+10\. R1이 수신한 Route의 Next-Hop이 R2의 Loopback IP Address로 변경된다.
+
+11\. R1은 내부 IGP를 통해 R2의 Loopback에 도달할 수 있으므로 `203.0.113.0/24`를 Routing Table에 설치한다.
+
+12\. R1의 Traffic은 R2를 거쳐 R3의 `203.0.113.0/24` Network로 전달된다.
+
+---
+
+## 명령어
+
+### eBGP Neighbor 설정
+
+R2에서 AS `65002`의 R3와 eBGP Neighbor를 형성한다.
+```
+R2(config)# router bgp 65001
+R2(config-router)# bgp router-id 2.2.2.2
+R2(config-router)# neighbor 192.0.2.2 remote-as 65002
+```
+
+R3에서도 R2를 Neighbor로 설정한다.
+```
+R3(config)# router bgp 65002
+R3(config-router)# bgp router-id 3.3.3.3
+R3(config-router)# neighbor 192.0.2.1 remote-as 65001
+```
+
+### iBGP Loopback Neighbor 설정
+
+R1과 R2가 서로의 Loopback IP Address로 iBGP Neighbor를 형성한다.
+```
+R1(config)# router bgp 65001
+R1(config-router)# bgp router-id 1.1.1.1
+R1(config-router)# neighbor 2.2.2.2 remote-as 65001
+R1(config-router)# neighbor 2.2.2.2 update-source loopback0
+```
+
+```
+R2(config)# router bgp 65001
+R2(config-router)# neighbor 1.1.1.1 remote-as 65001
+R2(config-router)# neighbor 1.1.1.1 update-source loopback0
+```
+
+iBGP Neighbor를 형성하기 전에 상대방 Loopback까지의 Reachability를 확보해야 한다.
+
+### BGP Network 광고
+
+R3의 Local Routing Table에 존재하는 `203.0.113.0/24`를 BGP로 광고한다.
+```
+R3(config)# router bgp 65002
+R3(config-router)# network 203.0.113.0 mask 255.255.255.0
+```
+
+`network` 명령의 Network와 Mask가 Local Routing Table의 Route와 정확히 일치해야 한다.
+
+### Next-Hop Self 설정
+
+R2가 R1에게 Route를 광고할 때 Next-Hop을 R2 자신으로 변경한다.
+```
+R2(config)# router bgp 65001
+R2(config-router)# neighbor 1.1.1.1 next-hop-self
+```
+
+### BGP 상태 확인
+
+BGP Neighbor State와 수신한 Prefix 수를 확인한다.
+```
+R2# show ip bgp summary
+```
+
+BGP Neighbor의 State, Timer, Message 및 Route 정보를 확인한다.
+```
+R2# show ip bgp neighbors
+```
+
+BGP Table과 Best Path를 확인한다.
+```
+R2# show ip bgp
+```
+
+BGP Best Path가 Routing Table에 설치되었는지 확인한다.
+```
+R2# show ip route bgp
+```
+
+---
+
+## Troubleshooting
+
+### BGP Neighbor가 형성되지 않는 경우
+
+1\. BGP Neighbor State를 확인한다.
+```
+R2# show ip bgp summary
+```
+
+2\. Neighbor IP Address까지 Ping이 가능한지 확인한다.
+```
+R2# ping 192.0.2.2
+R2# show ip route 192.0.2.2
+```
+
+3\. 양쪽 Router의 Neighbor IP와 Remote AS가 정확한지 확인한다.
+```
+R2# show running-config | section router bgp
+```
+
+4\. ACL이나 Firewall에서 TCP `179`를 차단하고 있지 않은지 확인한다.
+
+5\. Loopback으로 Neighbor를 형성한다면 양쪽에 `update-source loopback0`가 설정되어 있는지 확인한다.
+
+6\. eBGP Neighbor가 직접 연결되어 있지 않다면 `ebgp-multihop` 설정이 필요한지 확인한다.
+
+eBGP의 기본 TTL은 1이므로 일반적으로 직접 연결된 Router와만 Neighbor를 형성할 수 있다  
+- 만약 중간 Router를 거쳐 eBGP Neighbor를 형성한다면 `ebgp-multihop`으로 TTL을 늘려야 한다.  
+
+### Neighbor는 Established이지만 Route를 받지 못하는 경우
+
+R2 - 내 라우터
+
+R3 - 상대방 라우터
+
+1\. 상대방 Router가 Route를 실제로 광고하고 있는지 확인한다.
+```
+R3# show ip bgp neighbors 192.0.2.1 advertised-routes
+```
+
+2\. 상대방 BGP 설정에 `network` 또는 `redistribute` 명령이 있는지 확인한다.
+
+3\. `network` 명령의 Network와 Mask가 상대방 Local Routing Table의 Route와 정확히 일치하는지 확인한다.
+```
+R3# show ip route 203.0.113.0 255.255.255.0
+R3# show ip bgp 203.0.113.0
+```
+
+4\. Inbound 또는 Outbound Filter에서 Route를 차단하고 있지 않은지 확인한다.
+
+---
+
+## 주요 질문
+
+BGP는 어떤 Routing Protocol인가?
+- BGP는 서로 다른 AS 사이에서 Route를 교환하고 Path Attribute를 기준으로 Best Path를 선택하는 Path Vector Routing Protocol이다.
+
+eBGP와 iBGP의 차이는 무엇인가?
+- eBGP는 서로 다른 AS 사이에서 Route를 교환하고, iBGP는 같은 AS 내부에서 BGP Route를 공유한다.
+
+BGP Neighbor는 어떻게 형성되는가?
+- 양쪽 Router에 Neighbor IP와 Remote AS를 설정하고 TCP 연결 후 Open과 Keepalive 메시지를 정상적으로 교환하면 `Established` State가 된다.
+
+iBGP로 학습한 Route를 다른 iBGP Neighbor에게 광고하지 않는 이유는 무엇인가?
+- 같은 AS 내부에서 BGP Routing Loop가 발생하는 것을 방지하기 위해서이다.
+
+왜 같은 AS 내부에서 Routing Loop가 발생할 수 있는가?
+- iBGP로 Route를 전달할 때 AS-Path에 자신의 ASN을 추가하지 않기 때문에, 해당 Route가 같은 AS의 여러 Router를 거쳐 다시 자신에게 돌아온 것인지 확인하기 어렵다.
+
+BGP는 Best Path를 어떻게 선택하는가?
+- Weight, Local Preference, Locally Originated, AS-Path, Origin, MED 등의 순서로 비교하여 Best Path를 선택한다.
