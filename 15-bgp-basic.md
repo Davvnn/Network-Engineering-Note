@@ -47,7 +47,93 @@ iBGP는 외부 AS에서 학습한 BGP Route를 같은 AS 내부의 다른 BGP Ro
 기본 TTL은 `255`이다. 
  
 iBGP로 학습한 Route의 Cisco 기본 Administrative Distance는 `200`이다. 
+
+### BGP Neighbor
+
+BGP는 OSPF나 EIGRP처럼 Multicast Hello를 사용하여 Neighbor를 자동으로 찾지 않는다.
+
+양쪽 Router에서 상대방의 IP Address와 ASN을 직접 설정해야 하며, 상대방 IP까지 IP Reachability가 확보되어 있어야 한다.
+
+설정한 Remote AS가 자신의 AS와 다르면 eBGP, 같으면 iBGP로 동작한다.
+
+### BGP Router ID
+
+BGP Router ID는 BGP Router를 식별하는 `32-bit` 값이다.
+
+Router ID를 직접 설정하지 않으면 일반적으로 가장 높은 Loopback IP Address를 사용하고, Loopback Interface가 없으면 가장 높은 Active Physical Interface IP Address를 사용한다.
+
+Router ID를 자동으로 선택하면 사용 중인 Interface가 Down되거나 BGP가 재시작될 때 Router ID도 달라질 수 있다. 따라서 운영 환경에서는 Router ID가 항상 동일하게 유지되도록 직접 설정하는 것이 좋다.  
+- Router ID가 Interface 상태나 IP 변경의 영향을 받지 않도록 직접 설정하는 것이 좋다.
+
+### BGP Timer
+
+Cisco BGP의 기본 Keepalive Time은 `60초`이고 Hold Time은 `180초`이다.
+
+Keepalive 메시지를 주기적으로 교환하여 Session을 유지하며, Hold Time 동안 BGP 메시지를 수신하지 못하면 Neighbor Session을 종료한다.
+
+### BGP 메시지
+
+BGP는 Neighbor Session을 형성하고 Route 정보를 교환하기 위해 다음 메시지를 사용한다.
+- Open: BGP Version, ASN, Hold Time, Router ID 등의 정보를 교환하여 Session을 시작한다.
+- Keepalive: Neighbor Session이 정상적으로 유지되고 있음을 알린다.
+- Update: 새로 추가되거나 사라진 Route와 경로 정보를 전달한다.
+- Notification: 오류 내용을 알리고 BGP Session을 종료한다.
+
+### BGP Neighbor State
+
+BGP Neighbor는 다음 과정을 거쳐 `Established` 상태까지 진행된다.
+
+1\. Idle: BGP Neighbor 연결을 시작하기 전의 상태이다.  
+
+2\. Connect: Neighbor와 `TCP 3-Way Handshake`가 완료되기를 기다리는 상태이다.  
+
+3\. Active: TCP 연결에 실패하여 다시 연결을 시도하는 상태이다.
+
+4\. OpenSent: TCP 연결 후 Open 메시지를 전송하고 상대방의 Open 메시지를 기다리는 상태이다.
+
+5\. OpenConfirm: 상대방의 Open 메시지를 정상적으로 확인한 후 Keepalive 메시지를 전송하고, 상대방의 Keepalive 또는 Notification 메시지를 기다리는 상태이다.
+
+6\. Established: BGP Neighbor가 정상적으로 형성되어 Update와 Keepalive 메시지를 교환하는 상태이다.
+
+### BGP Route 광고
+
+BGP는 Connected Route나 IGP Route를 자동으로 광고하지 않는다.
+
+로컬 Route를 BGP로 광고하려면 `network` 또는 `redistribute` 명령을 사용해야 한다.
+
+`network` 명령을 사용하려면 광고하려는 Network와 Subnet Mask가 Local Routing Table의 Route와 정확히 일치해야 한다.
+
+예를 들어 `203.0.113.0/24`를 광고하려면 Local Routing Table에도 동일한 `203.0.113.0/24` Route가 존재해야 한다.
+```
+R1(config)# router bgp 65001
+R1(config-router)# network 203.0.113.0 mask 255.255.255.0
+```
+
+`redistribute` 명령은 Local Routing Table에 등록된 특정 종류의 Route 전체를 BGP로 가져와 광고할 때 사용한다.
  
+Local Routing Table에 다음과 같은 Static Route가 있다. 
+ ``` 
+S  203.0.113.0/24 
+S  198.51.100.0/24 
+``` 
+ 
+다음과 같이 설정하면 Local Routing Table에 등록된 모든 Static Route를 BGP로 가져와 광고한다. 
+ ``` 
+R1(config)# router bgp 65001 
+R1(config-router)# redistribute static 
+``` 
+ 
+OSPF Route를 BGP로 가져오려면 다음과 같이 설정한다. 
+``` 
+R1(config-router)# redistribute ospf 1 
+``` 
+ 
+`network`: 광고할 Route를 하나씩 직접 지정한다. 
+
+`redistribute`: Static, Connected, OSPF, EIGRP와 같은 특정 종류의 Route를 BGP로 가져와 광고한다. 
+
+`redistribute`는 여러 Route가 함께 광고될 수 있으므로 `Route-Map`이나 `Prefix-List`를 사용하여 필요한 Route만 제한하는 것이 좋다.
+
 ### Next-Hop 
  
 eBGP는 Route를 다른 AS로 광고할 때 Next-Hop을 자신으로 변경한다.
@@ -107,99 +193,39 @@ R2(config-router)# neighbor 10.1.25.5 route-reflector-client
 
 Route Reflector는 Route를 전달할 때 Next-Hop을 변경하지 않기 때문에, 필요한 경우 `next-hop-self`를 설정해야 한다.
 
-### BGP Neighbor
+### BGP Best Path
 
-BGP는 OSPF나 EIGRP처럼 Multicast Hello를 사용하여 Neighbor를 자동으로 찾지 않는다.
+BGP는 동일한 Prefix에 여러 경로가 존재하면 Path Attribute를 비교하여 Best Path를 선택한다.
 
-양쪽 Router에서 상대방의 IP Address와 ASN을 직접 설정해야 하며, 상대방 IP까지 IP Reachability가 확보되어 있어야 한다.
+Cisco BGP의 주요 Best Path 선택 순서는 다음과 같다.
 
-설정한 Remote AS가 자신의 AS와 다르면 eBGP, 같으면 iBGP로 동작한다.
+1\. Next-Hop에 도달할 수 있는 Route만 Best Path 후보로 사용한다.
 
-### BGP Timer
+2\. Weight가 가장 높은 Route를 선택한다.
 
-Cisco BGP의 기본 Keepalive Time은 `60초`이고 Hold Time은 `180초`이다.
+3\. Local Preference가 가장 높은 Route를 선택한다.
 
-Keepalive 메시지를 주기적으로 교환하여 Session을 유지하며, Hold Time 동안 BGP 메시지를 수신하지 못하면 Neighbor Session을 종료한다.
+4\. Local Router에서 생성한 Route를 선택한다.
 
-### BGP 메시지
+5\. AS-Path가 가장 짧은 Route를 선택한다.
 
-BGP는 Neighbor Session을 형성하고 Route 정보를 교환하기 위해 다음 메시지를 사용한다.
-- Open: BGP Version, ASN, Hold Time, Router ID 등의 정보를 교환하여 Session을 시작한다.
-- Keepalive: Neighbor Session이 정상적으로 유지되고 있음을 알린다.
-- Update: 새로 추가되거나 사라진 Route와 경로 정보를 전달한다.
-- Notification: 오류 내용을 알리고 BGP Session을 종료한다.
+6\. Origin Type이 가장 낮은 Route를 선택한다.
+- `IGP(i)` → `EGP(e)` → `Incomplete(?)` 순서로 선호한다.
 
-### BGP Neighbor State
+7\. MED가 가장 낮은 Route를 선택한다.
+- 기본적으로 같은 인접 AS에서 받은 경로끼리 비교한다.
 
-BGP Neighbor는 다음 과정을 거쳐 `Established` 상태까지 진행된다.
+8\. eBGP로 학습한 Route를 iBGP로 학습한 Route보다 우선한다.
 
-1\. Idle: BGP Neighbor 연결을 시작하기 전의 상태이다.  
+9\. BGP Next-Hop까지의 IGP Metric이 가장 낮은 Route를 선택한다.
 
-2\. Connect: Neighbor와 `TCP 3-Way Handshake`가 완료되기를 기다리는 상태이다.  
+10\. 두 경로가 모두 eBGP Route라면 가장 오래된 Route를 선택한다.
 
-3\. Active: TCP 연결에 실패하여 다시 연결을 시도하는 상태이다.
+11\. Neighbor의 BGP Router ID가 가장 낮은 Route를 선택한다.
 
-4\. OpenSent: TCP 연결 후 Open 메시지를 전송하고 상대방의 Open 메시지를 기다리는 상태이다.
+12\. 마지막으로 Neighbor IP Address가 가장 낮은 Route를 선택한다.
 
-5\. OpenConfirm: 상대방의 Open 메시지를 정상적으로 확인한 후 Keepalive 메시지를 전송하고, 상대방의 Keepalive 또는 Notification 메시지를 기다리는 상태이다.
-
-6\. Established: BGP Neighbor가 정상적으로 형성되어 Update와 Keepalive 메시지를 교환하는 상태이다.
-
-### BGP Router ID
-
-BGP Router ID는 BGP Router를 식별하는 `32-bit` 값이다.
-
-Router ID를 직접 설정하지 않으면 일반적으로 가장 높은 Loopback IP Address를 사용하고, Loopback Interface가 없으면 가장 높은 Active Physical Interface IP Address를 사용한다.
-
-Router ID를 자동으로 선택하면 사용 중인 Interface가 Down되거나 BGP가 재시작될 때 Router ID도 달라질 수 있다. 따라서 운영 환경에서는 Router ID가 항상 동일하게 유지되도록 직접 설정하는 것이 좋다.  
-- Router ID가 Interface 상태나 IP 변경의 영향을 받지 않도록 직접 설정하는 것이 좋다.
-
-### BGP Route 광고
-
-BGP는 Connected Route나 IGP Route를 자동으로 광고하지 않는다.
-
-로컬 Route를 BGP로 광고하려면 `network` 또는 `redistribute` 명령을 사용해야 한다.
-
-`network` 명령을 사용하려면 광고하려는 Network와 Subnet Mask가 Local Routing Table의 Route와 정확히 일치해야 한다.
-
-예를 들어 `203.0.113.0/24`를 광고하려면 Local Routing Table에도 동일한 `203.0.113.0/24` Route가 존재해야 한다.
-```
-R1(config)# router bgp 65001
-R1(config-router)# network 203.0.113.0 mask 255.255.255.0
-```
-
-`redistribute` 명령은 Local Routing Table에 등록된 특정 종류의 Route 전체를 BGP로 가져와 광고할 때 사용한다.
- 
-Local Routing Table에 다음과 같은 Static Route가 있다. 
- ``` 
-S  203.0.113.0/24 
-S  198.51.100.0/24 
-``` 
- 
-다음과 같이 설정하면 Local Routing Table에 등록된 모든 Static Route를 BGP로 가져와 광고한다. 
- ``` 
-R1(config)# router bgp 65001 
-R1(config-router)# redistribute static 
-``` 
- 
-OSPF Route를 BGP로 가져오려면 다음과 같이 설정한다. 
-``` 
-R1(config-router)# redistribute ospf 1 
-``` 
- 
-`network`: 광고할 Route를 하나씩 직접 지정한다. 
-
-`redistribute`: Static, Connected, OSPF, EIGRP와 같은 특정 종류의 Route를 BGP로 가져와 광고한다. 
-
-`redistribute`는 여러 Route가 함께 광고될 수 있으므로 `Route-Map`이나 `Prefix-List`를 사용하여 필요한 Route만 제한하는 것이 좋다.
-
-### AS-Path Loop Prevention
-
-AS-Path는 Route가 거쳐온 ASN의 목록이다.
-
-BGP Router는 다른 AS에게 Route를 광고할 때 자신의 ASN을 AS-Path 앞에 추가한다.
-
-eBGP로 Route를 수신했을 때 AS-Path 안에 자신의 ASN이 포함되어 있으면 Routing Loop로 판단하고 해당 Route를 받지 않는다.
+일반적인 환경에서는 다른 BGP Router에서 학습한 Route의 Weight가 `0`이고, Local Preference도 기본값 `100`을 사용하는 경우가 많다. 또한 Locally Originated Route가 아닌 외부에서 학습한 Route끼리 비교하는 경우가 많기 때문에, 실질적으로 AS-Path부터 경로 차이가 발생하는 경우가 많다. 
 
 ### 주요 Path Attribute
 
@@ -236,38 +262,4 @@ Route가 BGP에 등록된 방식을 나타낸다.
 
 상대 AS에게 우리 AS로 들어올 때 어떤 경로를 우선해서 사용하면 되는지 알려주는 값이다.  
 - 값이 낮을수록 우선한다.
-- 같은 AS에서 광고받은 여러 경로끼리 MED 값을 비교한다.  
-
-### BGP Best Path
-
-BGP는 동일한 Prefix에 여러 경로가 존재하면 Path Attribute를 비교하여 Best Path를 선택한다.
-
-Cisco BGP의 주요 Best Path 선택 순서는 다음과 같다.
-
-1\. Next-Hop에 도달할 수 있는 Route만 Best Path 후보로 사용한다.
-
-2\. Weight가 가장 높은 Route를 선택한다.
-
-3\. Local Preference가 가장 높은 Route를 선택한다.
-
-4\. Local Router에서 생성한 Route를 선택한다.
-
-5\. AS-Path가 가장 짧은 Route를 선택한다.
-
-6\. Origin Type이 가장 낮은 Route를 선택한다.
-- `IGP(i)` → `EGP(e)` → `Incomplete(?)` 순서로 선호한다.
-
-7\. MED가 가장 낮은 Route를 선택한다.
-- 기본적으로 같은 인접 AS에서 받은 경로끼리 비교한다.
-
-8\. eBGP로 학습한 Route를 iBGP로 학습한 Route보다 우선한다.
-
-9\. BGP Next-Hop까지의 IGP Metric이 가장 낮은 Route를 선택한다.
-
-10\. 두 경로가 모두 eBGP Route라면 가장 오래된 Route를 선택한다.
-
-11\. Neighbor의 BGP Router ID가 가장 낮은 Route를 선택한다.
-
-12\. 마지막으로 Neighbor IP Address가 가장 낮은 Route를 선택한다.
-
-일반적인 환경에서는 다른 BGP Router에서 학습한 Route의 Weight가 `0`이고, Local Preference도 기본값 `100`을 사용하는 경우가 많다. 또한 Locally Originated Route가 아닌 외부에서 학습한 Route끼리 비교하는 경우가 많기 때문에, 실질적으로 AS-Path부터 경로 차이가 발생하는 경우가 많다. 
+- 같은 AS에서 광고받은 여러 경로끼리 MED 값을 비교한다.
