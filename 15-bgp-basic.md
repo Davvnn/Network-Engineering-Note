@@ -201,36 +201,6 @@ BGP Router는 다른 AS에게 Route를 광고할 때 자신의 ASN을 AS-Path �
 
 eBGP로 Route를 수신했을 때 AS-Path 안에 자신의 ASN이 포함되어 있으면 Routing Loop로 판단하고 해당 Route를 받지 않는다.
 
-### BGP Best Path Selection 
- 
-BGP는 여러 Route가 있을 때 아래 순서대로 위에서부터 하나씩 비교하여 Best Path를 선택한다. 
- 
-1\. Weight 
-
-2\. Local Preference 
-
-3\. Locally Originated 
-
-4\. AS-Path 
-
-5\. Origin 
-
-6\. MED 
-
-7\. eBGP over iBGP 
-
-8\. Lowest IGP Metric to Next-Hop 
-
-9\. Oldest eBGP Path 
-
-10\. Lowest Router ID 
-
-11\. Shortest Cluster List 
-
-12\. Lowest Neighbor IP Address 
-  
-일반적인 환경에서는 다른 BGP Router에서 학습한 Route의 Weight가 `0`이고, Local Preference도 기본값 `100`을 사용하는 경우가 많다. 또한 Locally Originated Route가 아닌 외부에서 학습한 Route끼리 비교하는 경우가 많기 때문에, 실질적으로 AS-Path부터 경로 차이가 발생하는 경우가 많다. 
-
 ### 주요 Path Attribute
 
 #### Weight
@@ -300,3 +270,4 @@ Cisco BGP의 주요 Best Path 선택 순서는 다음과 같다.
 
 12\. 마지막으로 Neighbor IP Address가 가장 낮은 Route를 선택한다.
 
+일반적인 환경에서는 다른 BGP Router에서 학습한 Route의 Weight가 `0`이고, Local Preference도 기본값 `100`을 사용하는 경우가 많다. 또한 Locally Originated Route가 아닌 외부에서 학습한 Route끼리 비교하는 경우가 많기 때문에, 실질적으로 AS-Path부터 경로 차이가 발생하는 경우가 많다. 
