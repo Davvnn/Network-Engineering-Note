@@ -87,3 +87,19 @@ E2는 ASBR까지의 OSPF 내부 Cost를 더하지 않고 Seed Metric만 사용�
 Seed Metric 20 = 최종 Metric 20
 ```
 E2는 OSPF Redistribution의 기본 Route Type이며 Routing Table에서는 `O E2`로 표시된다.
+
+### Route Filtering
+
+Redistribution을 Filtering 없이 설정하면 Routing Table에 등록된 Routing Protocol의 Route들이 다른 Routing Domain으로 전달될 수 있다.
+- 예를 들어 EIGRP Route를 OSPF로 Redistribution할 때 별도의 Filtering이 없으면 EIGRP로 학습한 Route들이 모두 OSPF Domain으로 전달된다.
+ 
+Prefix-List로 전달할 Network를 지정하고 Route-Map을 `redistribute` 명령어에 적용하면 필요한 Route만 선택하여 전달할 수 있다.
+
+### Route Tag
+
+Route Tag는 Redistribution된 Route가 원래 어느 Routing Protocol에서 왔는지 표시하는 번호이다.
+
+예를 들어 EIGRP Route를 OSPF로 전달할 때 Tag를 설정하면, 혹여나 해당 Route가 OSPF Domain에서 다시 나한테 Redistribution되는 것을 차단할 수 있다.
+- EIGRP Route가 `EIGRP → OSPF → EIGRP`로 다시 되돌아오는 것을 막는 것이다.
+
+---
