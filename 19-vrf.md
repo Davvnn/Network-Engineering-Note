@@ -175,3 +175,123 @@ R1(config-router-af)# exit-address-family
 - `redistribute connected`: VRF의 Connected Route를 MP-BGP에 등록한다.
 
 ---
+
+## 동작 원리
+
+### VRF 동작 과정
+
+1\. Packet이 Layer 3 Interface로 들어온다.
+
+2\. Router는 Packet이 들어온 Interface가 어떤 VRF에 포함되어 있는지 확인한다.
+
+3\. 해당 VRF의 Routing Table에서 Destination Route를 검색한다.
+
+4\. Destination Route가 있으면 Packet을 전달한다.
+
+5\. Destination Route가 없으면 Packet을 Drop한다.
+
+6\. 다른 VRF의 Network와 통신해야 한다면 Route Leaking을 구성해야 한다.
+
+### Route Leaking 동작 과정
+
+1\. `FINANCE` VRF와 `SHARED` VRF는 각각 별도의 Routing Table을 사용한다.
+
+2\. 각 VRF는 자신의 Network만 알고 있으며 상대방 VRF의 Network는 알지 못한다.
+
+3\. `FINANCE` VRF에는 RD `65000:10`을 설정하고, `SHARED` VRF에는 RD `65000:100`을 설정한다.
+
+4\. MP-BGP는 RD를 사용하여 각 VRF의 Route를 서로 다른 VPN Route로 구분한다.
+
+5\. `FINANCE` VRF는 자신의 Route를 RT `65000:10`으로 Export한다.
+
+6\. `SHARED` VRF는 자신의 Route를 RT `65000:100`으로 Export한다.
+
+7\. `FINANCE` VRF는 RT `65000:100`이 설정된 Route를 Import한다.
+
+8\. `SHARED` VRF는 RT `65000:10`이 설정된 Route를 Import한다.
+
+9\. MP-BGP가 Import된 Route를 각 VRF의 Routing Table에 등록한다.
+
+10\. 양쪽 VRF에 서로의 Route가 등록되면서 양방향 통신이 가능해진다.
+
+---
+
+## 예시 및 구성도
+
+### Finance Network와 Shared Server 연결
+
+회사는 Finance Network와 Shared Server Network를 서로 다른 VRF로 분리하여 사용하고 있다.
+
+Finance 사용자는 Shared Server에 접속해야 하지만 두 Network가 서로 다른 VRF에 포함되어 있어 기본적으로 통신할 수 없다.
+
+관리자는 MP-BGP와 Route Target을 사용하여 두 VRF 사이에 필요한 Route를 공유하려고 한다.
+
+![](images/19-vrf-route-leaking-eg.png)
+
+1\. `FINANCE`와 `SHARED` VRF를 생성한다.
+```
+R1(config)# vrf definition FINANCE
+R1(config-vrf)# rd 65000:10
+R1(config-vrf)# address-family ipv4
+R1(config-vrf-af)# exit-address-family
+
+R1(config)# vrf definition SHARED
+R1(config-vrf)# rd 65000:100
+R1(config-vrf)# address-family ipv4
+R1(config-vrf-af)# exit-address-family
+```
+
+2\. `Gi0/0`을 `FINANCE` VRF에 포함하고 IP Address를 설정한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# vrf forwarding FINANCE
+R1(config-if)# ip address 172.16.10.1 255.255.255.0
+R1(config-if)# no shutdown
+```
+
+3\. `Gi0/1`을 `SHARED` VRF에 포함하고 IP Address를 설정한다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# vrf forwarding SHARED
+R1(config-if)# ip address 172.16.100.1 255.255.255.0
+R1(config-if)# no shutdown
+```
+
+4\. `FINANCE` VRF는 자신의 Route를 RT `65000:10`으로 Export하고 `SHARED` VRF의 RT `65000:100`을 Import한다.
+```
+R1(config)# vrf definition FINANCE
+R1(config-vrf)# address-family ipv4
+R1(config-vrf-af)# route-target export 65000:10
+R1(config-vrf-af)# route-target import 65000:100
+R1(config-vrf-af)# exit-address-family
+```
+
+6\. `SHARED` VRF는 자신의 Route를 RT `65000:100`으로 Export하고 `FINANCE` VRF의 RT `65000:10`을 Import한다.
+```
+R1(config)# vrf definition SHARED
+R1(config-vrf)# address-family ipv4
+R1(config-vrf-af)# route-target export 65000:100
+R1(config-vrf-af)# route-target import 65000:10
+R1(config-vrf-af)# exit-address-family
+```
+
+7\. 각 VRF의 Connected Route를 MP-BGP에 등록한다.
+```
+R1(config)# router bgp 65000
+R1(config-router)# address-family ipv4 vrf FINANCE
+R1(config-router-af)# redistribute connected
+R1(config-router-af)# exit-address-family
+
+R1(config-router)# address-family ipv4 vrf SHARED
+R1(config-router-af)# redistribute connected
+R1(config-router-af)# exit-address-family
+```
+8\. MP-BGP는 RD를 사용하여 각 VRF의 Route를 서로 다른 VPN Route로 구분한다.
+
+9\. 이후 RT 값을 확인하여 각 Route를 상대방 VRF의 Routing Table에 등록한다.
+
+9\. `FINANCE` VRF에는 `172.16.100.0/24` Route가 등록되고 `SHARED` VRF에는 `172.16.10.0/24` Route가 등록된다.
+
+10\. Finance 사용자와 Shared Server 사이에 양방향 통신이 가능해진다.
+
+---
