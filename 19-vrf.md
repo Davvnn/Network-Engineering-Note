@@ -295,3 +295,135 @@ R1(config-router-af)# exit-address-family
 10\. Finance 사용자와 Shared Server 사이에 양방향 통신이 가능해진다.
 
 ---
+
+## 명령어
+
+### VRF 상태 확인
+
+생성된 VRF와 RD를 확인한다.
+```
+R1# show vrf
+```
+
+각 Interface가 어떤 VRF에 포함되어 있는지 확인한다.
+```
+R1# show vrf interfaces
+```
+
+`FINANCE` VRF에 포함된 Interface의 IP Address와 상태를 확인한다.
+```
+R1# show ip interface brief vrf FINANCE
+```
+
+### VRF Table 확인
+
+`FINANCE` VRF의 ARP Table을 확인한다.
+```
+R1# show ip arp vrf FINANCE
+```
+
+`FINANCE` VRF에서 동작하는 Routing Protocol을 확인한다.
+```
+R1# show ip protocols vrf FINANCE
+```
+
+### MP-BGP Route 확인
+
+`FINANCE` VRF의 BGP Route를 확인한다.
+```
+R1# show bgp ipv4 unicast vrf FINANCE
+```
+
+MP-BGP가 관리하는 전체 VPNv4 Route와 RD를 확인한다.
+```
+R1# show bgp vpnv4 unicast all
+```
+
+### VRF 통신 확인
+
+`FINANCE` VRF의 Routing Table을 사용하여 Ping을 전송한다.
+```
+R1# ping vrf FINANCE 172.16.100.10
+```
+
+`FINANCE` VRF의 경로를 확인한다.
+```
+R1# traceroute vrf FINANCE 172.16.100.10
+```
+
+---
+
+## Troubleshooting
+
+### VRF 통신이 정상적으로 동작하지 않는 경우
+
+1\. VRF가 정상적으로 생성되어 있는지 확인한다.
+```
+R1# show vrf
+```
+
+2\. Interface가 올바른 VRF에 포함되어 있는지 확인한다.
+```
+R1# show vrf interfaces
+```
+
+3\. VRF를 생성한 방식과 Interface에 적용한 명령어가 일치하는지 확인한다.
+- `ip vrf` → `ip vrf forwarding`
+- `vrf definition` → `vrf forwarding`
+
+4\. Destination Route가 Global Routing Table이 아니라 올바른 VRF의 Routing Table에 등록되어 있는지 확인한다.
+```
+R1# show ip route vrf FINANCE
+```
+
+5\. Static Route의 Next-Hop이 같은 VRF에서 도달 가능한지 확인한다.
+```
+R1# show ip route vrf FINANCE 10.0.10.2
+```
+
+6\. Route Leaking을 사용한다면 RD와 RT 설정을 확인한다.
+```
+R1# show vrf detail FINANCE
+```
+
+7\. Export RT와 상대방 VRF의 Import RT가 서로 일치하는지 확인한다.
+- `FINANCE`의 Export RT가 `65000:10`이면 상대방 VRF에서 `65000:10`을 Import해야 한다.
+
+8\. Connected Route나 Routing Protocol Route가 MP-BGP에 정상적으로 등록되어 있는지 확인한다.
+```
+R1# show bgp ipv4 unicast vrf FINANCE
+```
+
+9\. 요청 방향뿐만 아니라 응답 방향의 Route도 Leaking되어 있는지 확인한다.
+- 한쪽 VRF에만 Route가 있으면 요청 Packet은 전달되더라도 응답 Packet이 돌아오지 못한다.
+
+10\. Route Leaking 이후에도 ACL이나 Firewall에서 Traffic을 차단하고 있는지 확인한다.
+- Route Leaking은 Route만 공유하며 Traffic을 자동으로 허용하지 않는다.
+
+---
+
+## 주요 질문
+
+VRF란 무엇인가?
+- 하나의 Router에서 여러 개의 독립적인 Routing Table을 사용하는 기술이다.
+
+VRF를 사용하는 이유는 무엇인가?
+- 하나의 장비에서 서로 다른 Network의 Routing 정보를 분리하고 Traffic을 격리하기 위해 사용한다.
+
+VRF-Lite란 무엇인가?
+- MPLS 없이 Router나 Layer 3 Switch 내부에서 여러 개의 VRF를 사용하는 방식이다.
+
+서로 다른 VRF에서 같은 IP Address를 사용할 수 있는가?
+- 각 VRF가 별도의 Routing Table을 사용하기 때문에 같은 IP Address와 Network를 사용할 수 있다.
+
+Router는 Packet에 사용할 VRF를 어떻게 결정하는가?
+- Packet이 들어온 Layer 3 Interface에 설정된 VRF를 기준으로 결정한다.
+
+Route Leaking이란 무엇인가?
+- 서로 분리된 VRF 사이에서 필요한 Route만 선택하여 공유하는 기능이다.
+
+RD와 RT의 차이는 무엇인가?
+- RD는 동일한 IP Prefix를 서로 다른 VPN Route로 구분하고, RT는 어떤 VRF가 해당 Route를 가져올지 결정한다.
+
+Route Leaking을 한 방향에만 설정해도 통신할 수 있는가?
+- 양방향 통신을 위해서는 요청 경로와 응답 경로가 모두 필요하다.
