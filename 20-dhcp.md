@@ -33,6 +33,8 @@ Windows Server나 전용 DHCP Server와 동일하게 DORA 과정을 통해 Clien
 
 DHCP Client는 `Discover → Offer → Request → ACK` 순서로 IP Address와 Network 설정을 할당받는다.
 
+![](images/20-dhcp-dora.png)
+
 1\. DHCP Discover
 
 Client는 자신의 IP Address와 DHCP Server의 위치를 모르기 때문에 Local Network에 Broadcast하여 DHCP Server를 찾는다.
