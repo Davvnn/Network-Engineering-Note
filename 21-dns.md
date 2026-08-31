@@ -225,3 +225,6 @@ Destination Port: Client의 Random Port
 - Client가 Root, TLD, Authoritative DNS Server에 직접 조회하는 것이 아니라 Recursive DNS Server가 대신 조회한다.
 - DNS Query는 일반적으로 UDP `53`번 Port를 사용한다.
 - 응답이 크거나 Zone Transfer가 필요한 경우 TCP `53`번 Port를 사용할 수 있다.
+
+---
+
