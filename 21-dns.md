@@ -128,3 +128,37 @@ portal.example.com  CNAME    www.example.com
 - `portal.example.com`은 `www.example.com`을 가리키는 별칭이다.
 - CNAME은 IP Address가 아니라 다른 Domain Name을 지정한다.
 
+### Forward Lookup과 Reverse Lookup
+
+Forward Lookup은 이름으로 IP Address를 조회하고, Reverse Lookup은 IP Address로 이름을 조회한다.
+- Forward Lookup: `www.example.com → 192.0.2.10`
+- Reverse Lookup: `192.0.2.10 → www.example.com`
+
+Forward Lookup에는 A 또는 AAAA Record를 사용하고, Reverse Lookup에는 PTR Record를 사용한다.
+
+A Record가 있다고 해서 PTR Record도 반드시 존재하는 것은 아니다.
+
+### DNS Cache와 TTL
+
+DNS Cache는 조회한 결과를 임시로 저장하여 같은 정보를 다시 조회할 때 사용하는 기능이다.
+- PC에 Cache가 있으면 DNS Server에 다시 물어보지 않고 사용한다.
+
+DNS의 TTL(Time to Live)은 Record를 Cache에 보관할 수 있는 시간을 초 단위로 지정한다.
+
+예를 들어 TTL이 `300`이면 해당 정보를 최대 300초 동안 Cache에서 사용할 수 있다.
+- DNS의 TTL은 IP Packet의 Hop 수를 제한하는 TTL과 다른 값이다.
+
+### DNS Forwarder
+
+DNS Forwarder는 DNS Server가 직접 해결하지 못한 조회 요청을 대신 처리하도록 지정한 다른 DNS Server이다.
+
+PC는 내부 회사 DNS Server에 조회하며, 회사 DNS Server는 내부 Domain에는 직접 응답하고 외부 Domain은 Cache가 없으면 Forwarder로 지정된 DNS Server에 물어본 후 결과를 전달한다. 
+```
+PC가 사용하는 DNS Server: 10.0.0.20 
+회사 DNS Server의 Forwarder: 8.8.8.8
+```
+
+특정 Domain의 요청만 지정한 DNS Server로 전달하는 방식은 Conditional Forwarding이라고 한다.
+
+---
+
