@@ -289,6 +289,7 @@ Answer: 10.0.0.30
 ```
 
 5\. 이후 직원들은 Web Server의 IP Address를 직접 입력하지 않고 `portal.corp.mason`을 통해 Web Server에 접속한다.  
+
 ---
 
 ## 명령어
