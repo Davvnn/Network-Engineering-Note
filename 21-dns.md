@@ -290,3 +290,103 @@ Answer: 10.0.0.30
 
 5\. 이후 직원들은 Web Server의 IP Address를 직접 입력하지 않고 `portal.corp.mason`을 통해 Web Server에 접속한다.  
 ---
+
+## 명령어
+
+### Client의 DNS Server 확인
+
+Windows Client에 설정된 DNS Server를 확인한다.
+```
+C:> ipconfig /all
+```
+
+### DNS 조회
+
+Client에 설정된 DNS Server 및 IP Address를 조회한다.  
+```
+C:> nslookup portal.corp.mason
+```
+
+IP Address에 해당하는 이름을 Reverse Lookup으로 조회한다.
+```
+C:> nslookup 10.0.0.30
+```
+
+### DNS Cache 확인 및 삭제
+
+Windows Client의 DNS Cache를 확인한다.
+```
+C:> ipconfig /displaydns
+```
+
+기존 DNS Cache를 삭제한다.
+```
+C:> ipconfig /flushdns
+```
+
+### Cisco Router의 DNS 조회 설정
+
+Router가 Domain Name을 이용하여 Ping이나 Traceroute를 실행할 수 있도록 DNS 조회 기능을 활성화한다.
+```
+R1(config)# ip domain lookup
+R1(config)# ip name-server 10.0.0.20
+```
+- `ip domain lookup`: Router의 DNS 조회 기능을 활성화한다.
+- `ip name-server`: Router가 사용할 DNS Server를 지정한다.
+- `no ip domain lookup`은 Router가 잘못 입력한 명령어를 Domain Name으로 인식하여 DNS 조회를 시도하는 것을 막기 위해 사용한다.
+
+---
+
+## Troubleshooting
+
+### DNS 조회가 정상적으로 동작하지 않는 경우  
+
+1\. Client에 올바른 DNS Server가 설정되어 있는지 확인한다.
+```
+C:\> ipconfig /all
+```
+
+2\. DNS Server를 직접 지정하여 정상적으로 응답하는지 확인한다.
+```
+C:\> nslookup portal.corp.example 10.0.0.20
+```
+
+3\. DNS Server까지의 Routing과 ACL 또는 Firewall 설정을 확인한다.
+- 일반적인 DNS 통신에 필요한 UDP와 TCP Port `53`이 차단되어 있지 않은지 확인한다.
+
+4\. DNS Server에 올바른 Zone과 Record가 존재하는지 확인한다.
+- 이름의 오타와 A / AAAA / CNAME Record 값을 확인한다.
+
+5\. DNS Server에서 Domain Name의 IP Address를 변경했는데도 이전 IP Address가 계속 조회되면 Cache와 TTL을 확인한다.
+```
+C:\> ipconfig /displaydns
+C:\> ipconfig /flushdns
+```
+- Client의 DNS Cache를 Flush하여 변경된 DNS 정보를 다시 조회한다.  
+
+6\. 내부 Domain은 조회되지만 외부 Domain만 실패하면 Forwarder 설정과 외부 DNS Server까지의 통신을 확인한다.
+
+---
+
+## 주요 질문
+
+DNS란 무엇인가?
+- Domain Name에 해당하는 IP Address 등의 정보를 조회하는 시스템이다.
+
+DNS는 어떤 Port를 사용하는가?
+- 일반적인 DNS는 UDP와 TCP Port `53`을 사용한다.
+
+A Record와 CNAME Record의 차이는 무엇인가?
+- A Record는 이름에 IPv4 Address를 매핑하고, CNAME Record는 별칭에 다른 Domain Name을 매핑한다.
+
+Recursive DNS Server의 역할은 무엇인가?
+- Client를 대신하여 다른 DNS Server에 조회하고 최종 결과를 Client에게 전달한다.
+
+Authoritative DNS Server의 역할은 무엇인가?
+- 자신이 직접 가지고 있는 Zone의 DNS Record를 확인하여 요청받은 정보를 응답한다.
+
+DNS Cache와 TTL을 사용하는 이유는 무엇인가?
+- 같은 DNS 정보를 매번 다시 조회하지 않고 저장된 정보를 사용하여 더 빠르게 조회하기 위해 사용한다.  
+
+DNS Record를 변경했는데 이전 IP Address가 조회되는 이유는 무엇인가?
+- Client에 기존 DNS Server의 Cache가 남아 있을 수 있기 때문이다.
