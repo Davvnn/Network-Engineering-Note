@@ -162,3 +162,66 @@ PC가 사용하는 DNS Server: 10.0.0.20
 
 ---
 
+## 동작 원리
+
+### DNS 조회 과정
+
+Client가 `www.example.com`의 IPv4 Address를 조회하는 경우이다.
+
+Client와 Recursive DNS Server에 `example.com`에 대한 Cache가 없으며, Forwarder를 사용하지 않는 환경이다.
+
+1\. Client는 설정된 Recursive DNS Server로 `www.example.com`의 A Record를 요청하는 Query를 전송한다.
+```
+Source IP: Client IP
+Destination IP: Recursive DNS Server IP
+Protocol: UDP
+Source Port: Random Port
+Destination Port: 53
+```
+
+2\. Recursive DNS Server는 Cache에 정보가 없기 때문에 Root DNS Server로 DNS Query를 전송한다.  
+```
+Source IP: Recursive DNS Server IP
+Destination IP: Root DNS Server IP
+Protocol: UDP
+Destination Port: 53
+```
+
+3\. Root DNS Server는 `.com`을 담당하는 TLD DNS Server 정보를 Recursive DNS Server에게 응답한다.
+
+4\. Recursive DNS Server는 전달받은 `.com` TLD DNS Server로 DNS Query를 전송한다.
+```
+Source IP: Recursive DNS Server IP
+Destination IP: TLD DNS Server IP
+Protocol: UDP
+Destination Port: 53
+```
+5\. TLD DNS Server는 `google.com`을 담당하는 Authoritative DNS Server 정보를 Recursive DNS Server에게 응답한다.
+
+6\. Recursive DNS Server는 Authoritative DNS Server로 `www.google.com`의 A Record를 요청하는 DNS Query를 전송한다.
+```
+Source IP: Recursive DNS Server IP
+Destination IP: Authoritative DNS Server IP
+Protocol: UDP
+Destination Port: 53
+```
+
+7\. Authoritative DNS Server는 `www.google.com`에 등록된 IPv4 Address를 응답한다.
+```
+www.google.com
+A Record: 93.184.216.34
+```
+
+8\. Recursive DNS Server는 조회 결과를 Cache에 저장하고 Client에게 응답한다.
+```
+Source IP: Recursive DNS Server IP
+Destination IP: Client IP
+Protocol: UDP
+Source Port: 53
+Destination Port: Client의 Random Port
+```
+
+9\. Client는 전달받은 IP Address를 이용하여 Web Server와 통신을 시작한다.
+- Client가 Root, TLD, Authoritative DNS Server에 직접 조회하는 것이 아니라 Recursive DNS Server가 대신 조회한다.
+- DNS Query는 일반적으로 UDP `53`번 Port를 사용한다.
+- 응답이 크거나 Zone Transfer가 필요한 경우 TCP `53`번 Port를 사용할 수 있다.
