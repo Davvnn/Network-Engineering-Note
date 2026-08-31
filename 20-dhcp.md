@@ -275,3 +275,302 @@ Lease Time: ...
 
 ---
 
+## 예시 및 구성도
+
+### 본사 사용자 Network에 DHCP Server 도입
+
+회사는 직원 PC의 IP Address를 수동으로 설정하고 있었지만, 직원들이 늘어나면서 중복 IP Address와 잘못된 Default Gateway 설정이 자주 발생하였다.
+
+관리자는 IP Address를 한 곳에서 관리하기 위해 Server Network에 전용 DHCP Server를 도입하였다.
+
+사용자 Network와 Server Network는 서로 다른 대역이므로, R1에 DHCP Relay를 설정하여 Client의 DHCP 메시지를 Server까지 전달한다.
+
+관리자는 Gateway, Printer 및 AP 등에 사용할 IP Address를 제외하고 `192.168.10.21`부터 Client에게 할당하도록 구성한다.
+
+![](images/20-dhcp-relay.png)
+
+#### Network 구성
+- Client Network: `192.168.10.0/24`
+- Client Default Gateway: `192.168.10.1`
+- R1 Client 방향 Interface: `Gi0/0`
+- R1 Server 방향 Interface: `Gi0/1`
+- Server Network: `10.0.0.0/24`
+- DHCP Server: `10.0.0.10`
+- DNS Server: `10.0.0.20`
+- DHCP 할당 범위: `192.168.10.21`부터 `192.168.10.254`
+
+#### DHCP Server 설정 정보
+
+DHCP Server에는 Client Network에 맞는 DHCP Pool을 생성한다.
+```
+Network: 192.168.10.0/24
+할당 범위: 192.168.10.21 - 192.168.10.254
+Default Gateway: 192.168.10.1
+DNS Server: 10.0.0.20
+Lease Time: 1일
+```
+
+#### DHCP Relay 설정
+
+R1의 Client 방향 Interface에 `ip helper-address`를 설정한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# ip address 192.168.10.1 255.255.255.0
+R1(config-if)# ip helper-address 10.0.0.10
+R1(config-if)# no shutdown
+
+R1(config)# interface gi0/1
+R1(config-if)# ip address 10.0.0.1 255.255.255.0
+R1(config-if)# no shutdown
+```
+- `ip helper-address`는 DHCP Server 방향이 아니라 Client의 DHCP Broadcast를 받는 Interface에 설정한다.
+- Client Network가 여러 개라면 각 Client 방향 Layer 3 Interface 또는 SVI에 각각 설정한다.
+
+#### DHCP Relay를 통한 IP Address 할당 과정
+
+1\. Client는 DHCP Discover를 Broadcast로 전송한다.
+
+Client는 자신의 IP Address와 DHCP Server의 위치를 모르기 때문에 Local Network에 DHCP Discover를 Broadcast한다.
+```
+Payload: DHCP Discover
+Source IP: 0.0.0.0
+Destination IP: 255.255.255.255
+Source MAC: Client MAC
+Destination MAC: FFFF.FFFF.FFFF
+UDP Port: 68 → 67
+```
+
+2\. R1은 Client의 Broadcast DHCP Discover를 Server에게 Unicast로 전달한다.
+
+R1은 `ip helper-address`가 설정되어 있으므로 Client의 DHCP Discover를 DHCP Relay로 처리한다.
+
+R1은 DHCP 메시지의 `giaddr`에 Client 방향 Interface의 IP Address를 넣고, Destination IP를 DHCP Server 주소로 변경하여 Unicast로 전달한다.
+```
+Destination IP: 10.0.0.10
+giaddr: 192.168.10.1
+UDP Port: 67 → 67
+```
+- `giaddr`: `ip helper-address`가 설정된 Client 방향 Interface의 IP Address를 DHCP Server에게 알려준다.
+
+3\. DHCP Server는 Client Network에 맞는 Pool을 선택한다.
+
+DHCP Server는 `giaddr`의 `192.168.10.1`을 보고 Client가 `192.168.10.0/24` Network에 있다는 것을 확인한다.
+
+DHCP Server는 해당 Pool에서 사용 가능한 `192.168.10.21`을 Client에게 제안한다.
+```
+giaddr: 192.168.10.1
+Client Network: 192.168.10.0/24
+제안 IP Address: 192.168.10.21
+```
+
+4\. DHCP Server는 DHCP Offer를 R1에게 Unicast로 전송한다.
+
+DHCP Server는 `giaddr`에 들어 있는 R1의 IP Address로 DHCP Offer를 전달한다.
+```
+Payload: DHCP Offer
+Source IP: 10.0.0.10
+Destination IP: 192.168.10.1
+UDP Port: 67 → 67
+
+yiaddr: 192.168.10.21
+```
+- `yiaddr`: DHCP Server가 Client에게 제안하는 IP Address가 들어간다.
+
+5\. R1은 DHCP Offer를 Client에게 전달한다.
+
+R1은 `giaddr`를 보고 DHCP Offer를 `Gi0/0` 방향으로 전달한다.
+
+Client가 Broadcast Flag를 `1`로 설정했다면 DHCP Offer를 Broadcast로 전달한다.
+```
+Payload: DHCP Offer
+Destination IP: 255.255.255.255
+Source MAC: R1 Gi0/0 MAC
+Destination MAC: FFFF.FFFF.FFFF
+UDP Port: 67 → 68
+```
+- Broadcast Flag가 `0`이면 `yiaddr`의 IP Address와 Client MAC Address를 이용하여 Unicast로 전달할 수 있다.
+
+6\. Client는 DHCP Request를 Broadcast로 전송한다.
+
+Client는 제안받은 `192.168.10.21`과 사용할 DHCP Server `10.0.0.10`을 선택한다.
+
+Client는 자신의 선택을 다른 DHCP Server들에게도 알리기 위해 DHCP Request를 Broadcast한다.
+```
+Payload: DHCP Request
+Source IP: 0.0.0.0
+Destination IP: 255.255.255.255
+Source MAC: Client MAC
+Destination MAC: FFFF.FFFF.FFFF
+UDP Port: 68 → 67
+
+Requested IP Address: 192.168.10.21
+Server Identifier: 10.0.0.10
+```
+
+7\. R1은 DHCP Request를 DHCP Server에게 Unicast로 전달한다.
+
+R1은 DHCP Request의 `giaddr`에 `192.168.10.1`을 넣고, `ip helper-address`에 지정된 DHCP Server로 전달한다.
+```
+Payload: DHCP Request
+Destination IP: 10.0.0.10
+giaddr: 192.168.10.1
+UDP Port: 67 → 67
+```
+
+8\. DHCP Server는 DHCP ACK를 R1에게 Unicast로 전송한다.
+
+DHCP Server는 `192.168.10.21`의 할당을 승인하고, DHCP ACK를 `giaddr`의 주소인 `192.168.10.1`로 전달한다.
+```
+Payload: DHCP ACK
+Source IP: 10.0.0.10
+Destination IP: 192.168.10.1
+UDP Port: 67 → 67
+```
+
+9\. R1은 DHCP ACK를 Client에게 전달한다.
+
+R1은 Broadcast Flag에 따라 DHCP ACK를 Broadcast 또는 Unicast로 전달한다.
+
+Client는 DHCP ACK에 포함된 Network 설정을 적용하고 정상적인 통신을 시작한다.
+```
+IP Address: 192.168.10.21
+Subnet Mask: 255.255.255.0
+Default Gateway: 192.168.10.1
+DNS Server: 10.0.0.20
+Lease Time: 1일
+```
+
+---
+
+## 명령어
+
+### Domain Name과 Lease Time 설정
+
+기존 DHCP Pool에 Domain Name과 Lease Time을 설정한다.
+```
+R1(config)# ip dhcp pool VLAN10
+R1(dhcp-config)# domain-name company.local
+R1(dhcp-config)# lease 7
+```
+- `domain-name company.local`: Client에게 DNS Suffix로 사용할 Domain Name을 전달한다.
+- `lease 7`: Lease Time을 7일로 설정한다.
+- `lease 0 12`: Lease Time을 12시간으로 설정한다.
+- `lease infinite`: Lease Time을 무제한으로 설정한다.
+
+### SVI에서 DHCP Relay 설정
+
+Layer 3 Switch의 SVI가 Client VLAN의 Gateway라면 해당 SVI에 설정한다.
+```
+SW1(config)# interface vlan 10
+SW1(config-if)# ip helper-address 10.0.0.10
+```
+
+### Cisco Router를 DHCP Client로 설정
+
+Router Interface가 DHCP Server로부터 IP Address를 할당받도록 설정한다.
+```
+R3(config)# interface gi0/0
+R3(config-if)# ip address dhcp
+R3(config-if)# no shutdown
+```
+- Network 장비는 Gateway나 관리용 IP Address가 변경되지 않도록 일반적으로 고정 IP Address를 사용한다.
+
+### DHCP Server 상태 확인
+
+아래 명령어는 Cisco 장비가 DHCP Server로 동작하는 경우에 사용한다.
+```
+R1# show ip dhcp binding
+R1# show ip dhcp pool
+R1# show ip dhcp conflict
+R1# show ip dhcp server statistics
+R1# show dhcp lease
+```
+- `show ip dhcp binding`: Client에게 할당한 IP Address와 Lease 정보를 확인한다.
+- `show ip dhcp pool`: DHCP Pool의 주소 사용 현황을 확인한다.
+- `show ip dhcp conflict`: 충돌로 기록된 IP Address를 확인한다.
+- `show ip dhcp server statistics`: DHCP 메시지의 송수신 횟수와 Server 통계를 확인한다.
+
+### DHCP Debug
+
+DHCP Server의 주요 동작과 처리하는 Packet을 확인한다.
+```
+R1# debug ip dhcp server events
+R1# debug ip dhcp server packet
+```
+- `events`: IP Address 할당 등 DHCP Server의 주요 동작을 확인한다.
+- `packet`: DHCP Packet 처리 내용을 확인한다.
+
+확인이 끝나면 Debug를 종료한다.
+```
+R1# undebug all
+```
+
+---
+
+## Troubleshooting
+
+### DHCP IP Address를 할당받지 못하는 경우
+
+1\. Client가 DHCP를 사용하도록 설정되어 있는지 확인한다.
+```
+C:\> ipconfig /all
+```
+
+2\. DHCP Server에 Client Network와 일치하는 DHCP Pool이 존재하는지 확인한다.
+```
+R1# show ip dhcp pool
+```
+
+3\. DHCP Pool에 할당 가능한 IP Address가 남아 있는지 확인한다.
+
+4\. IP 충돌이 발생한 Address가 있는지 확인한다.
+```
+R1# show ip dhcp conflict
+```
+
+5\. Client와 DHCP Server가 다른 Network에 있다면 Client 방향 Interface에 `ip helper-address`가 설정되어 있는지 확인한다.
+```
+R1# show running-config interface gi0/0
+```
+
+6\. DHCP Relay에서 DHCP Server까지 Route가 존재하고 DHCP Server에도 Client Network로 돌아오는 Return Route가 있는지 확인한다.
+```
+R1# show ip route 10.0.0.10
+R2# show ip route 192.168.10.0
+```
+
+7\. DHCP Snooping이 설정되어 있다면 DHCP Server 또는 Relay 방향 Port가 Trusted인지 확인한다.
+```
+SW1# show ip dhcp snooping
+```
+
+8\. ACL이나 Firewall에서 UDP Port `67`, `68`이 차단되고 있지 않은지 확인한다.
+
+9\. DHCP Server가 Client 요청을 실제로 수신하고 있는지 확인한다.
+```
+R1# show ip dhcp server statistics
+R1# debug ip dhcp server events
+R1# debug ip dhcp server packet
+R1# undebug all
+```
+- Statistics와 Debug에 요청이 확인되지 않는다면 DHCP Relay, Routing, VLAN 또는 DHCP Snooping 구간에서 요청이 차단되고 있을 가능성이 있다.
+
+10\. Client가 `169.254.0.0/16`의 IP Address를 사용하고 있다면  DHCP Server로부터 정상적인 IP Address를 할당받지 못한 상태이다.
+---
+
+## 주요 질문
+
+DHCP란 무엇인가?
+- Client에게 IP Address, Subnet Mask, Default Gateway 및 DNS Server 등의 Network 설정을 자동으로 할당하는 Protocol이다.
+
+DHCP DORA 과정은 무엇인가?
+- `Discover → Offer → Request → ACK` 순서로 Client에게 IP Address와 Network 설정을 할당하는 과정이다.
+
+DHCP Relay를 사용하는 이유는 무엇인가?
+- Router는 DHCP Broadcast를 다른 Network로 전달하지 않으므로, Client와 다른 Network에 있는 DHCP Server에게 DHCP 메시지를 중계하기 위해 사용한다.
+
+`ip helper-address`는 어디에 설정하는가?
+- Client의 DHCP Broadcast를 수신하는 Layer 3 Interface 또는 SVI에 설정한다.
+
+DHCP Server는 Relay를 통해 들어온 요청의 Pool을 어떻게 선택하는가?
+- DHCP Relay를 통해 들어온 메시지의 `giaddr`에 기록된 IP Address를 확인하여 Client Network에 맞는 Pool을 선택한다.
