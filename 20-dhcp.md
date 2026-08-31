@@ -146,3 +146,120 @@ SW1(config-if)# ip dhcp snooping trust
 
 ---
 
+## 동작 원리
+
+Client가 `192.168.10.0/24`, DHCP Server가 `10.0.0.10`에 있고 Router가 DHCP Relay 역할을 하는 경우이다.
+
+1\. Client는 DHCP Discover를 Broadcast로 전송한다.
+
+Client는 자신의 IP Address와 DHCP Server의 위치를 모르기 때문에 Local Network에 Broadcast한다.
+```
+Payload: DHCP Discover
+Source IP: 0.0.0.0
+Destination IP: 255.255.255.255
+Source MAC: Client MAC
+Destination MAC: FFFF.FFFF.FFFF
+UDP Port: 68 → 67
+```
+
+2\. Router는 Client의 Broadcast DHCP Discover를 Server에게 Unicast로 전달한다.
+
+Router는 `ip helper-address`가 설정되어 있으면 Client의 Broadcast DHCP 메시지를 새로운 IP Header로 캡슐화하고, Destination IP를 지정된 DHCP Server 주소로 변경하여 Unicast로 전달한다.
+
+Router는 일반적인 Broadcast를 다른 Network로 전달하지 않지만, `ip helper-address`가 설정되어 있으면 DHCP Relay로 동작한다.
+
+Router는 DHCP 메시지의 `giaddr`에 Client Network와 연결된 자신의 Interface IP Address를 넣고 DHCP Server에게 전달한다.
+```
+Destination IP: 10.0.0.10
+giaddr: 192.168.10.1
+UDP Port: 67 → 67
+```
+- `giaddr`: Client Network와 연결된 DHCP Relay Interface의 IP Address를 알려준다.
+
+3\. DHCP Server는 Client에게 제안할 IP Address를 선택한다.
+
+DHCP Server는 `giaddr`를 보고 Client가 속한 Network를 확인하고, 해당 DHCP Pool에서 사용 가능한 IP Address를 선택한다.
+```
+giaddr: 192.168.10.1
+Client Network: 192.168.10.0/24
+제안 IP Address: 192.168.10.100
+```
+
+4\. DHCP Server는 DHCP Offer를 Relay에게 Unicast로 전송한다.
+
+DHCP Server는 제안할 IP Address와 Subnet Mask, Default Gateway, DNS Server 및 Lease Time을 DHCP Offer에 포함하여 `giaddr`의 주소로 전달한다.
+```
+Payload: DHCP Offer
+Source IP: 10.0.0.10
+Destination IP: 192.168.10.1
+UDP Port: 67 → 67
+
+yiaddr: 192.168.10.100
+```
+- `yiaddr`: DHCP Server가 Client에게 제안하는 IP Address가 들어가는 Your IP Address 필드이다.
+
+5\. Router는 DHCP Offer를 Client에게 전달한다.
+
+Router는 `giaddr`를 보고 Client Network와 연결된 Interface를 확인하고, Broadcast Flag에 따라 DHCP Offer를 Broadcast 또는 Unicast로 전달한다.
+
+Client가 Broadcast Flag를 `1`로 설정한 경우에는 다음과 같이 Broadcast한다.
+```
+Payload: DHCP Offer
+Source IP: 10.0.0.10
+Destination IP: 255.255.255.255
+Source MAC: Router Interface MAC
+Destination MAC: FFFF.FFFF.FFFF
+UDP Port: 67 → 68
+```
+- Broadcast Flag가 `0`이면 `yiaddr`의 IP Address와 `chaddr`의 Client MAC Address를 이용하여 Unicast로 전달할 수 있다.
+
+6\. Client는 DHCP Request를 Broadcast로 전송한다.
+
+Client는 사용할 DHCP Server와 제안받은 IP Address를 선택하고, 자신의 선택을 다른 DHCP Server들에게도 알리기 위해 Broadcast한다.
+```
+Payload: DHCP Request
+Source IP: 0.0.0.0
+Destination IP: 255.255.255.255
+Source MAC: Client MAC
+Destination MAC: FFFF.FFFF.FFFF
+UDP Port: 68 → 67
+
+Requested IP Address: 192.168.10.100
+Server Identifier: 10.0.0.10
+```
+- 같은 Network에 있거나 Relay의 전달 대상으로 설정된 다른 DHCP Server들은 자신의 Offer가 선택되지 않았음을 확인할 수 있다.
+- 선택되지 않은 DHCP Server는 자신이 제안했던 IP Address를 다른 Client에게 할당할 수 있다.
+
+7\. Router는 DHCP Request를 Server에게 Unicast로 전달한다.
+
+Router는 DHCP Request의 `giaddr`에 `192.168.10.1`을 넣고 `ip helper-address`에 설정된 DHCP Server에게 전달한다.
+```
+Payload: DHCP Request
+Destination IP: 10.0.0.10
+giaddr: 192.168.10.1
+UDP Port: 67 → 67
+```
+
+8\. DHCP Server는 DHCP ACK를 Relay에게 Unicast로 전송한다.
+
+DHCP Server는 Client가 요청한 IP Address의 할당을 승인하고 DHCP ACK를 `giaddr`의 주소로 전달한다.
+```
+Payload: DHCP ACK
+Source IP: 10.0.0.10
+Destination IP: 192.168.10.1
+UDP Port: 67 → 67
+```
+
+9\. Router는 DHCP ACK를 Client에게 전달한다.
+
+Router는 Broadcast Flag에 따라 DHCP ACK를 Broadcast 또는 Unicast로 전달한다.
+
+Client는 DHCP ACK에 포함된 정보를 적용한 후 정상적인 통신을 시작한다.
+```
+IP Address: 192.168.10.100
+Subnet Mask: 255.255.255.0
+Default Gateway: 192.168.10.1
+DNS Server: ...
+Lease Time: ...
+```
+
