@@ -228,3 +228,65 @@ Destination Port: Client의 Random Port
 
 ---
 
+## 예시 및 구성도
+
+### 사내 업무 Portal을 Domain Name으로 접속
+
+`MASON` 회사는 직원들이 사내 업무 시스템, 파일 공유 시스템 등에 접속할 수 있도록 내부 Web Portal을 운영하고 있다.  
+ 
+기존에는 직원들이 Web Browser에 `10.0.0.30`을 직접 입력하여 Portal에 접속하고 있었지만, 신규 직원이 늘어나면서 IP Address를 기억하기 어렵다는 문의가 계속 발생하였다.
+
+관리자는 Web Server 접속 방법이 바뀌지 않도록 내부 DNS Server에 `portal.corp.mason`을 등록하기로 하였다.  
+
+이후 직원들은 Web Server의 IP Address를 직접 입력하지 않고 `portal.corp.mason`을 이용하여 사내 Portal에 접속할 수 있다.
+
+![](images/21-dns-eg.png)
+
+Network 구성
+- Client: `192.168.10.100/24`
+- Client Default Gateway: `192.168.10.1`
+- DNS Server: `10.0.0.20/24`
+- Web Server: `10.0.0.30/24`
+- 내부 Domain: `corp.mason`
+
+#### DNS 설정 정보
+
+DNS Server의 `corp.mason` Zone에 다음 A Record를 등록한다.
+```
+Name: portal.corp.mason
+Record Type: A
+IP Address: 10.0.0.30
+TTL: 300
+```
+
+Client가 사용할 DNS Server를 `10.0.0.20`으로 설정한다.
+
+#### 접속 과정
+
+1\. 직원이 Web Browser에 `portal.corp.mason`을 입력한다.
+
+2\. Client는 `portal.corp.mason`의 IP Address를 확인하기 위해 DNS Server에 Query를 전송한다.
+```
+Payload: DNS Query
+Source IP: 192.168.10.100
+Destination IP: 10.0.0.20
+UDP Port: Random Port → 53
+
+Query Name: portal.corp.mason
+Query Type: A
+```
+
+3\. DNS Server는 자신이 관리하는 `corp.mason` Zone에서 `portal.corp.mason`의 A Record를 확인한다.
+
+4\. DNS Server는 Client에게 `10.0.0.30`을 응답한다.
+```
+Payload: DNS Response
+Source IP: 10.0.0.20
+Destination IP: 192.168.10.100
+UDP Port: 53 → Client의 Random Port
+
+Answer: 10.0.0.30
+```
+
+5\. 이후 직원들은 Web Server의 IP Address를 직접 입력하지 않고 `portal.corp.mason`을 통해 Web Server에 접속한다.  
+---
