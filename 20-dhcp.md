@@ -134,6 +134,8 @@ DHCP Snooping은 비정상적인 DHCP Server가 Client에게 잘못된 Network �
 
 DHCP Snooping이 설정되어 있다면 정상적인 DHCP Server 메시지가 들어오는 Port를 Trusted Port로 설정해야 한다.
 
+DHCP Snooping은 관리자가 지정한 Trusted Port에서는 DHCP Server 메시지를 허용하고, Untrusted Port에서 들어오는 DHCP Server 메시지는 차단한다.
+
 ```
 SW1(config)# interface gi0/24
 SW1(config-if)# ip dhcp snooping trust
