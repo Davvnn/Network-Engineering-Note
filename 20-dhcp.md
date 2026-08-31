@@ -263,3 +263,15 @@ DNS Server: ...
 Lease Time: ...
 ```
 
+### DHCP Lease 갱신
+
+1\. Lease Time의 약 `50%`가 지나면 Client는 기존 DHCP Server에 Lease 연장을 요청한다.
+
+2\. DHCP Server가 DHCP ACK로 응답하면 Lease Time이 갱신된다.
+
+3\. 기존 DHCP Server가 응답하지 않으면 Lease Time의 약 `87.5%`가 지난 시점에 Broadcast로 다른 DHCP Server에도 갱신을 요청한다.
+
+4\. Lease가 만료될 때까지 갱신하지 못하면 기존 IP Address를 더 이상 사용할 수 없으며 DHCP Discover 과정부터 다시 시작한다.
+
+---
+
