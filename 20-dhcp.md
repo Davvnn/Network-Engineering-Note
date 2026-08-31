@@ -556,6 +556,7 @@ R1# undebug all
 - Statistics와 Debug에 요청이 확인되지 않는다면 DHCP Relay, Routing, VLAN 또는 DHCP Snooping 구간에서 요청이 차단되고 있을 가능성이 있다.
 
 10\. Client가 `169.254.0.0/16`의 IP Address를 사용하고 있다면  DHCP Server로부터 정상적인 IP Address를 할당받지 못한 상태이다.
+
 ---
 
 ## 주요 질문
