@@ -207,4 +207,65 @@ R1(config)# ip access-list match-local-traffic
 
 ---
 
+## 예시 및 구성도
 
+### Guest Network의 Server 접근 제한
+
+`MASON` 회사는 직원 Network와 Guest Network를 분리하여 사용하고 있다.
+
+Guest 사용자는 내부 DNS Server와 Web Portal에는 접속할 수 있지만 다른 내부 Server에는 접속하지 못하도록 제한한다. Internet Traffic은 정상적으로 허용한다.
+
+![](images/23-acl-eg.png)
+
+#### ACL 정책
+
+1\. Guest Network에서 DNS Server의 UDP와 TCP Port `53`을 허용한다.
+
+2\. Guest Network에서 Web Server의 TCP Port `80`과 `443`을 허용한다.
+
+3\. Guest Network에서 나머지 내부 Server Network로 전달되는 Traffic을 차단한다.
+
+4\. Internet으로 전달되는 나머지 Traffic은 허용한다.
+
+#### ACL 처리 순서
+
+```
+10 DNS UDP 허용
+20 DNS TCP 허용
+30 HTTP 허용
+40 HTTPS 허용
+50 나머지 내부 Server Network 차단
+60 그 외 Traffic 허용
+```
+
+1\. Extended Named ACL 설정
+
+Guest Network의 Server 접근을 제한한다.
+```
+R1(config)# ip access-list extended GUEST-IN
+R1(config-ext-nacl)# 10 permit udp 192.168.20.0 0.0.0.255 host 10.0.0.20 eq 53
+R1(config-ext-nacl)# 20 permit tcp 192.168.20.0 0.0.0.255 host 10.0.0.20 eq 53
+R1(config-ext-nacl)# 30 permit tcp 192.168.20.0 0.0.0.255 host 10.0.0.30 eq 80
+R1(config-ext-nacl)# 40 permit tcp 192.168.20.0 0.0.0.255 host 10.0.0.30 eq 443
+R1(config-ext-nacl)# 50 deny ip 192.168.20.0 0.0.0.255 10.0.0.0 0.0.0.255
+R1(config-ext-nacl)# 60 permit ip 192.168.20.0 0.0.0.255 any
+```
+
+2\. Inbound ACL 적용
+
+Guest Network에서 들어오는 Packet에 ACL을 적용한다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# ip access-group GUEST-IN in
+```
+
+3\. Outbound ACL 적용
+
+Server Network로 나가는 Packet에 ACL을 적용한다.
+```
+R1(config)# interface gi0/2
+R1(config-if)# ip access-group SERVER-OUT out
+```
+- `Gi0/1`에 Inbound ACL을 적용하면 Guest Traffic은 R1에 들어올 때 이미 필터링되므로, 동일한 ACL을 `Gi0/2`의 Outbound 방향에 다시 적용할 필요가 없다. 둘중 하나만 넣으면 된다.
+
+---
