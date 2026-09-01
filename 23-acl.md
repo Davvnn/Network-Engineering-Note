@@ -259,13 +259,5 @@ R1(config)# interface gi0/1
 R1(config-if)# ip access-group GUEST-IN in
 ```
 
-3\. Outbound ACL 적용
-
-Server Network로 나가는 Packet에 ACL을 적용한다.
-```
-R1(config)# interface gi0/2
-R1(config-if)# ip access-group SERVER-OUT out
-```
-- `Gi0/1`에 Inbound ACL을 적용하면 Guest Traffic은 R1에 들어올 때 이미 필터링되므로, 동일한 ACL을 `Gi0/2`의 Outbound 방향에 다시 적용할 필요가 없다. 둘중 하나만 넣으면 된다.
-
 ---
+
