@@ -261,3 +261,51 @@ R1(config-if)# ip access-group GUEST-IN in
 
 ---
 
+## Troubleshooting
+
+### ACL 적용 후 정상 Traffic까지 차단되는 경우
+
+1\. ACL이 올바른 Interface와 방향에 적용되어 있는지 확인한다.
+```
+R1# show ip interface gi0/1
+```
+
+2\. Entry의 순서와 Match Counter를 확인한다.
+```
+R1# show ip access-lists GUEST-IN
+```
+
+3\. `deny` Entry가 필요한 `permit` Entry보다 위에 있는지 확인한다.
+
+4\. Implicit Deny로 인해 필요한 Traffic이 차단되고 있는지 확인한다.
+
+5\. Wildcard Mask, Protocol 및 Port Number가 올바른지 확인한다.
+
+6\. Counter를 초기화하고 Traffic을 다시 발생시켜 어떤 ACE에 Match되는지 확인한다.
+```
+R1# clear access-list counters GUEST-IN
+R1# show ip access-lists GUEST-IN
+```
+- Traffic을 발생시켰는데 예상한 Entry의 Counter가 증가하지 않으면 ACL 조건, 적용 Interface 또는 방향을 확인해야 한다.
+
+---
+
+## 주요 질문
+
+ACL은 무엇인가?
+- Traffic을 허용하거나 차단하고, NAT, PBR 및 QoS 등의 기능을 적용할 Traffic을 선택하기 위해 사용한다.
+
+ACL은 어떤 순서로 확인하는가?
+- Sequence Number가 낮은 Entry부터 확인하며 처음 Match된 Entry의 동작을 적용하고 확인을 종료한다.
+
+Implicit Deny란 무엇인가?
+- 모든 ACL의 마지막에 자동으로 존재하는 보이지 않는 `deny` 규칙이며, 어떤 Entry에도 Match되지 않은 Traffic을 차단한다.
+
+Standard ACL과 Extended ACL의 차이는 무엇인가?
+- Standard ACL은 Source IP Address만 확인하고, Extended ACL은 Source/Destination IP Address, Protocol 및 Port Number까지 확인한다.
+
+Standard ACL과 Extended ACL은 일반적으로 어디에 적용하는가?
+- Standard ACL은 목적지와 가까운 곳에 적용하고, Extended ACL은 출발지와 가까운 곳에 적용한다.
+
+Inbound ACL과 Outbound ACL의 차이는 무엇인가?
+- Inbound ACL은 Packet이 Interface로 들어올 때 확인하고, Outbound ACL은 Routing 후 Interface를 통해 나갈 때 확인한다.
