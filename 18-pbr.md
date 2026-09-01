@@ -267,7 +267,7 @@ Prefix-List, Route-Map 및 PBR의 역할은 각각 무엇인가?
 Route Filtering과 PBR의 차이는 무엇인가?
 - Route Filtering은 Route를 학습하거나 광고하는 것을 제한하고, PBR은 실제 Packet을 어떤 Next-Hop으로 전달할지 결정한다.
 
-ACL → Packet 허용·차단
+ACL → Packet 허용,차단 및 Traffic을 선택
 
 Route Filtering → 특정 Route가 학습·광고되지 않도록 차단
 
