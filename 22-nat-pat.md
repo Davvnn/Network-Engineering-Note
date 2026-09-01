@@ -254,6 +254,335 @@ Destination: 198.51.100.10:443
 
 7\. 응답 Packet은 R2를 거쳐 R1으로 전달된다.
 
-8\. R1은 응답 Packet의 Source와 Destination IP Address를 반대로 변환하여 A 회사 Client에게 전달한다.
+8\. R1은 응답 Packet의 Source를 `10.16.6.100`으로, Destination을 A Client의 실제 주소인 `10.16.0.10`으로 변환하여 전달한다.
+
+--
+
+## 예시 및 구성도
+
+### 사내 사용자의 Internet 접속
+
+`MASON` 회사는 직원들의 업무용 PC에 `192.168.10.0/24` 대역의 Private IP Address를 할당하고 있다.
+
+회사 직원들은 업무 Portal, Cloud Service 및 외부 Web Server를 이용하기 위해 Internet에 접속해야 하지만, Private IP Address는 Internet에서 직접 사용할 수 없다.
+
+따라서 관리자는 모든 직원의 Private IP Address를 R1의 외부 Interface IP Address인 `203.0.113.2`로 변환하여 Internet에 접속할 수 있도록 Dynamic PAT를 구성하였다.
+
+ISP는 `MASON` 회사에 `203.0.113.0/29` 대역을 제공하였다.
+- ISP Gateway는 `203.0.113.1`을 사용한다.
+- R1의 외부 Interface는 `203.0.113.2`를 사용한다.
+
+![](images/22-nat-eg.png)
+
+1\. Client 1과 Client 2는 외부 Web Server인 `198.51.100.10:443`에 접속하기 위한 Packet을 전송한다.
+
+Client 1
+```
+Source: 192.168.10.100:51000
+Destination: 198.51.100.10:443
+```
+Client 2
+```
+Source: 192.168.10.101:51000
+Destination: 198.51.100.10:443
+```
+
+2\. Packet은 SW1을 거쳐 R1의 내부 Interface인 `Gi0/0`으로 전달된다.
+
+3\. R1은 NAT 설정에 연결된 ACL을 확인하여 Source IP Address가 `192.168.10.0/24`에 포함되는지 확인한다.
+
+4\. R1은 두 Client의 Private IP Address를 외부 Interface IP Address인 `203.0.113.2`로 변환한다.
+- 같은 Public IP Address를 사용하므로 변환된 Source Port Number를 다르게 지정하여 각각의 통신을 구분한다.
+
+Client 1
+```
+192.168.10.100:51000 → 203.0.113.2:30001
+```
+Client 2
+```
+192.168.10.101:51000 → 203.0.113.2:30002
+```
+
+5\. R1은 변환한 정보를 NAT Translation Table에 저장하고 Packet을 ISP Router로 전달한다.
+
+6\. 외부 Web Server는 두 Packet의 Source IP Address를 모두 `203.0.113.2`로 확인한다.
+- Source Port Number가 다르기 때문에 서로 다른 통신으로 구분할 수 있다.
+
+7\. Web Server의 응답이 R1으로 돌아오면 R1은 Destination Port Number와 NAT Translation Table을 확인한다.
+```
+203.0.113.2:30001 → 192.168.10.100:51000
+203.0.113.2:30002 → 192.168.10.101:51000
+```
+
+8\. R1은 응답 Packet을 원래 Client의 Private IP Address와 Port Number로 변환하여 전달한다.
 
 ---
+
+## 명령어
+
+### NAT Inside와 Outside 설정
+
+내부 Network와 연결된 Interface를 NAT Inside로 설정한다.
+
+```
+R1(config)# interface gi0/0
+R1(config-if)# ip address 192.168.10.1 255.255.255.0
+R1(config-if)# ip nat inside
+R1(config-if)# no shutdown
+```
+
+외부 Network와 연결된 Interface를 NAT Outside로 설정한다.
+
+```
+R1(config)# interface gi0/1
+R1(config-if)# ip address 203.0.113.2 255.255.255.248
+R1(config-if)# ip nat outside
+R1(config-if)# no shutdown
+```
+
+### Dynamic PAT using Outside Interface
+
+NAT를 적용할 내부 Network를 선택한다.
+
+```
+R1(config)# ip access-list standard NAT-LIST
+R1(config-std-nacl)# permit 192.168.10.0 0.0.0.255
+```
+
+외부 Interface IP Address를 사용하여 PAT를 적용한다.
+
+```
+R1(config)# ip nat inside source list NAT-LIST interface gi0/1 overload
+```
+
+- `list NAT-LIST`: NAT를 적용할 Source IP Address를 선택한다.
+- `interface gi0/1`: `Gi0/1`의 IP Address를 사용한다.
+- `overload`: Port Number를 사용하여 Public IP Address를 공유한다.
+
+### Dynamic NAT 설정
+
+Public IP Address Pool을 생성한다.
+
+```
+R1(config)# ip nat pool PUBLIC-POOL 203.0.113.3 203.0.113.5 prefix-length 29
+```
+
+내부 Network를 선택하고 Public IP Address Pool과 연결한다.
+
+```
+R1(config)# access-list 10 permit 192.168.10.0 0.0.0.255
+R1(config)# ip nat inside source list 10 pool PUBLIC-POOL
+```
+
+`overload`가 없으므로 하나의 내부 IP Address가 Public IP Address 하나를 사용한다.
+
+### Dynamic PAT with Pool 설정
+
+Public IP Address Pool을 생성한다.
+
+```
+R1(config)# ip nat pool PUBLIC-POOL 203.0.113.3 203.0.113.5 prefix-length 29
+```
+
+Pool에 `overload`를 적용한다.
+
+```
+R1(config)# access-list 10 permit 192.168.10.0 0.0.0.255
+R1(config)# ip nat inside source list 10 pool PUBLIC-POOL overload
+```
+
+Pool의 Public IP Address를 여러 내부 장비가 Port Number로 구분하여 함께 사용한다.
+
+### Static NAT 설정
+
+내부 Server의 Private IP Address와 Public IP Address를 `1:1`로 매핑한다.
+
+```
+R1(config)# ip nat inside source static 192.168.20.10 203.0.113.6
+```
+
+### Static PAT 설정
+
+Public IP Address `203.0.113.6`의 TCP Port `443`을 내부 Web Server로 전달한다.
+
+```
+R1(config)# ip nat inside source static tcp 192.168.20.10 443 203.0.113.6 443
+```
+
+### Static Outside PAT 설정
+
+외부 Server `198.51.100.10:80`을 내부에서 `10.0.6.100:6783`으로 보이게 한다.
+
+```
+R1(config)# ip nat outside source static tcp 198.51.100.10 80 10.0.6.100 6783 add-route
+```
+
+- `198.51.100.10:80`: 실제 외부 Server의 주소와 Port이다.
+- `10.0.6.100:6783`: 내부 사용자가 접속할 변환된 주소와 Port이다.
+- `add-route`: 변환된 Outside Local Address로 전달하기 위한 Route를 Routing Table에 추가한다.
+
+### Two-Way NAT 설정
+
+A 회사 Client의 실제 IP Address를 B 회사에서 사용할 주소로 변환한다.
+
+```
+R1(config)# ip nat inside source static 10.16.0.10 10.16.7.10
+```
+
+B 회사 Server의 실제 IP Address를 A 회사에서 사용할 주소로 변환한다.
+
+```
+R1(config)# ip nat outside source static 10.16.0.100 10.16.6.100 add-route
+```
+
+A 회사 Client는 실제 B 회사 Server 주소가 아니라 `10.16.6.100`으로 접속한다.
+
+```
+10.16.0.10 → 10.16.7.10
+10.16.6.100 → 10.16.0.100
+```
+
+실제 환경에서는 VPN, VRF 및 Routing 구성에 따라 추가 Route 설정이 필요할 수 있다.
+
+### Default Route 설정
+
+외부 Network로 전달하기 위한 Default Route를 설정한다.
+
+```
+R1(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.1
+```
+
+### NAT 상태 확인
+
+현재 NAT Translation Table을 확인한다.
+
+```
+R1# show ip nat translations
+
+Pro  Inside Global          Inside Local             Outside Local          Outside Global
+tcp  203.0.113.2:30001      192.168.10.100:51000     198.51.100.10:443     198.51.100.10:443
+tcp  203.0.113.2:30002      192.168.10.101:51000     198.51.100.10:443     198.51.100.10:443
+```
+- `Inside Local`: 내부 Client의 실제 Private IP Address와 Port Number이다.
+- `Inside Global`: NAT 변환 후 Internet에서 보이는 Public IP Address와 Port Number이다.
+- `Outside Local`: 내부에서 바라보는 외부 Web Server의 주소이다.
+- `Outside Global`: 외부 Web Server가 실제로 사용하는 주소이다.
+
+NAT Inside/Outside Interface, NAT Pool 및 Translation 통계를 확인한다.
+```
+R1# show ip nat statistics
+```
+
+NAT ACL에 Packet이 Match되고 있는지 확인한다.
+
+```
+R1# show access-lists
+```
+
+NAT 관련 설정을 확인한다.
+
+```
+R1# show running-config | include ip nat
+```
+
+모든 동적 NAT Translation을 삭제한다.
+
+```
+R1# clear ip nat translation *
+```
+
+기존 NAT Session이 삭제되므로 통신 중인 Traffic에 영향을 줄 수 있다.
+
+---
+
+## Troubleshooting
+
+### NAT 설정 후 통신되지 않는 경우
+
+1\. 내부와 외부 Interface에 NAT 방향이 올바르게 설정되어 있는지 확인한다.
+
+```
+R1# show ip nat statistics
+R1# show running-config interface gi0/0
+R1# show running-config interface gi0/1
+```
+
+2\. NAT ACL이 내부 Source IP Address를 올바르게 선택하고 있는지 확인한다.
+
+```
+R1# show access-lists
+```
+
+3\. Traffic을 발생시킨 후 NAT Translation이 생성되는지 확인한다.
+
+```
+R1# show ip nat translations
+```
+
+4\. Default Route와 목적지 Route가 있는지 확인한다.
+
+```
+R1# show ip route
+```
+
+5\. Dynamic NAT를 사용하는 경우 Public IP Address Pool이 모두 사용 중인지 확인한다.
+
+```
+R1# show ip nat statistics
+```
+
+6\. Static NAT나 Static PAT에 사용하는 IP Address와 Port가 다른 NAT 설정과 중복되지 않았는지 확인한다.
+
+7\. 외부 Interface의 ACL이나 Firewall 정책에서 해당 Traffic을 허용하고 있는지 확인한다.
+
+8\. Static Outside PAT를 사용하는 경우 Outside Local Address의 Route가 Routing Table에 등록되었는지 확인한다.
+
+```
+R1# show ip route 10.0.6.100
+```
+
+9\. Two-Way NAT를 사용하는 경우 Source와 Destination Address가 모두 올바르게 변환되는지 확인한다.
+
+```
+R1# show ip nat translations
+```
+
+---
+
+## 주요 질문
+
+NAT를 사용하는 이유는 무엇인가?
+- Private IP Address를 다른 IP Address로 변환하여 외부 Network와 통신할 수 있도록 하고, Public IPv4 Address를 절약하기 위해 사용한다.
+
+Source NAT와 Destination NAT의 차이는 무엇인가?
+- Source NAT는 Packet의 Source IP Address를 변환하고, Destination NAT는 Packet의 Destination IP Address를 변환한다.
+
+NAT와 PAT의 차이는 무엇인가?
+- NAT는 주로 IP Address를 변환하고, PAT는 IP Address와 Port Number를 함께 변환하여 여러 내부 장비가 Public IP Address를 공유할 수 있도록 한다.
+
+Static NAT와 Dynamic NAT의 차이는 무엇인가?
+- Static NAT는 내부 IP와 외부 IP를 고정으로 매핑하고, Dynamic NAT는 통신이 발생할 때 Public IP Address Pool에서 주소를 임시로 할당한다.
+
+Dynamic NAT와 Dynamic PAT with Pool의 차이는 무엇인가?
+- Dynamic NAT는 내부 IP Address마다 Public IP Address 하나를 할당하고, Dynamic PAT는 `overload`를 사용하여 Pool의 Public IP Address를 여러 내부 장비가 공유한다.
+
+`overload`는 어떤 역할을 하는가?
+- Port Number를 변환하여 여러 내부 장비가 하나 또는 여러 개의 Public IP Address를 공유할 수 있도록 한다.
+
+Static PAT는 언제 사용하는가?
+- 외부 사용자가 Public IP Address의 특정 Port를 이용하여 내부 Server에 접속하도록 할 때 사용한다.
+
+Static Outside PAT는 언제 사용하는가?
+- 내부 사용자가 실제 외부 Server를 다른 IP Address와 Port로 보이게 하여 접속해야 할 때 사용한다.
+
+Two-Way NAT는 언제 사용하는가?
+- 두 Network가 동일하거나 겹치는 IP Address 대역을 사용하여 Address 충돌이 발생할 때 Source와 Destination Address를 모두 변환하기 위해 사용한다.
+
+NAT ACL의 `deny`는 Traffic을 차단하는가?
+- 차단하지 않는다. 해당 Traffic을 NAT 적용 대상에서 제외한다.
+
+NAT를 설정하면 Default Route가 없어도 외부와 통신할 수 있는가?
+- 통신할 수 없다. NAT는 IP Address를 변환하는 기능이므로 Packet을 외부로 전달할 Route도 필요하다.
+
+NAT는 Firewall과 같은 보안 기능인가?
+- NAT는 IP Address를 변환하는 기능이므로 Firewall을 대신할 수 없다. Traffic을 제어하려면 ACL이나 Firewall 정책을 별도로 적용해야 한다.
