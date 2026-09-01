@@ -210,3 +210,129 @@ VLAN 10: SW1 STP Root + HSRP Active
 VLAN 20: SW2 STP Root + HSRP Active
 ```
 기존 Standby Multi-layer Switch를 특정 VLAN의 Active Gateway로 설정한다면, 해당 VLAN의 STP Root Bridge도 같은 Switch로 지정하는 것이 좋다. 이렇게 하면 단말 Traffic이 다른 Switch를 불필요하게 거치지 않고 Active Gateway로 전달될 수 있다.
+
+---
+
+## 동작 원리
+
+### HSRP 동작 과정
+
+1\. MLS1과 MLS2는 같은 VLAN에서 동일한 HSRP Group과 Virtual IP Address를 설정한다.
+```
+MLS1(config)# ip routing
+MLS1(config)# vlan 10
+MLS1(config-vlan)# exit
+
+MLS1(config)# interface vlan 10
+MLS1(config-if)# ip address 192.168.10.1 255.255.255.0
+MLS1(config-if)# standby version 2
+MLS1(config-if)# standby 10 ip 192.168.10.254
+MLS1(config-if)# standby 10 priority 110
+MLS1(config-if)# standby 10 preempt
+MLS1(config-if)# no shutdown
+```
+
+```
+MLS2(config)# ip routing
+MLS2(config)# vlan 10
+MLS2(config-vlan)# exit
+
+MLS2(config)# interface vlan 10
+MLS2(config-if)# ip address 192.168.10.2 255.255.255.0
+MLS2(config-if)# standby version 2
+MLS2(config-if)# standby 10 ip 192.168.10.254
+MLS2(config-if)# standby 10 priority 100
+MLS2(config-if)# standby 10 preempt
+MLS2(config-if)# no shutdown
+```
+
+2\. 두 장비는 VLAN `10`을 통해 HSRP Hello Message를 교환한다.
+
+3\. Priority를 비교하여 더 높은 Priority `110`을 가진 MLS1이 Active 장비로 선출된다.
+
+4\. MLS2는 Priority `100`으로 Standby 장비가 되어 MLS1의 Hello Message를 확인한다.
+```
+MLS1: Active
+MLS2: Standby
+Virtual IP Address: 192.168.10.254
+```
+
+5\. Client는 Virtual IP Address를 Default Gateway로 설정한다.
+
+6\. Client가 Virtual IP Address에 대해 ARP Request를 전송하면 MLS1이 Virtual MAC Address로 응답한다.
+
+7\. Client의 Traffic은 Virtual MAC Address를 사용하는 MLS1으로 전달된다.
+
+
+### Active 장비 장애 발생
+
+1\. MLS1에 장애가 발생하여 Hello Message를 전송하지 못한다.
+
+2\. MLS2는 Hold Time 동안 MLS1의 Hello Message를 받지 못한다.
+
+3\. MLS2는 MLS1에 장애가 발생한 것으로 판단하고 Active 상태로 전환된다.
+
+4\. MLS2는 기존 Virtual IP Address와 Virtual MAC Address를 이어받는다.
+
+5\. MLS2는 Gratuitous ARP를 전송하고, 다른 Switch들은 Virtual MAC Address를 MLS2 방향의 Interface로 다시 학습하도록 한다.
+
+6\. Client는 Default Gateway 설정을 변경하지 않고 MLS2를 통해 통신한다.
+
+### Uplink 장애 발생
+
+MLS1의 Client 연결 Interface는 정상이지만 외부 Uplink에만 장애가 발생할 수 있다.
+
+Uplink의 상태를 추적하도록 Object Tracking을 설정한다.
+
+```
+MLS1(config)# track 1 interface gi1/0/47 line-protocol
+
+MLS1(config)# interface vlan 10
+MLS1(config-if)# standby 10 track 1 decrement 20
+```
+- `track 1`: `Gi1/0/47`의 Line Protocol 상태를 추적한다.
+- `decrement 20`: Uplink에 장애가 발생하면 HSRP Priority를 `20`만큼 낮춘다.
+
+1\. MLS1의 Client 연결 Interface는 정상 상태이지만 외부 Uplink에 장애가 발생한다.
+
+2\. Object Tracking이 Uplink 장애를 감지한다.
+
+3\. MLS1의 HSRP Priority가 `110`에서 `90`으로 감소한다.
+
+4\. Priority가 `100`인 MLS2가 MLS1보다 높은 Priority를 가지게 된다.
+
+5\. `preempt`가 설정된 MLS2가 Active 역할을 가져간다.
+
+6\. Client Traffic은 정상적인 Uplink를 가진 MLS2를 통해 전달된다.
+
+### VRRP 동작 과정
+
+1\. MLS1과 MLS2는 같은 VLAN에서 동일한 VRRP Group과 Virtual IP Address를 설정한다.
+```
+MLS1(config)# interface vlan 10
+MLS1(config-if)# vrrp 10 ip 192.168.10.254
+MLS1(config-if)# vrrp 10 priority 110
+```
+
+```
+MLS2(config)# interface vlan 10
+MLS2(config-if)# vrrp 10 ip 192.168.10.254
+MLS2(config-if)# vrrp 10 priority 100
+```
+- VRRP는 Preempt가 기본적으로 활성화되어 있다.
+
+2\. Priority가 높은 MLS1이 Master 장비로 선출된다.
+
+3\. MLS1은 Advertisement Message를 주기적으로 전송하여 정상 상태임을 알린다.
+
+4\. MLS2는 Backup 상태에서 Advertisement Message를 수신한다.
+
+5\. MLS1의 Advertisement Message가 중단되면 MLS2는 Master Down Interval이 지날 때까지 기다린다.
+
+6\. MLS2는 Master 상태로 전환되어 Virtual IP Address와 Virtual MAC Address를 이어받는다.
+
+7\. MLS2는 Gratuitous ARP를 전송하여 L2 Switch가 Virtual MAC Address를 MLS2 방향의 Interface로 다시 학습하도록 한다.
+
+8\. Client는 Default Gateway 설정을 변경하지 않고 MLS2를 통해 통신한다.
+
+---
