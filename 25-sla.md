@@ -148,3 +148,30 @@ delay down 10 up 20
 ```
 - `delay down 10`: 장애가 감지되어도 `10초` 동안 기다린 후 Track을 Down으로 변경한다.
 - `delay up 20`: 통신이 복구된 후 20초 동안 정상 상태가 유지되면 Track을 Up으로 변경한다.
+
+---
+
+## 동작 원리
+
+### IP SLA와 Object Tracking 동작 과정
+
+1\. R1은 IP SLA에 설정된 목적지로 Test Packet을 주기적으로 전송한다.
+
+2\. 목적지에서 정상적으로 응답하면 IP SLA Operation은 성공 상태가 된다.
+
+3\. Object Tracking은 IP SLA의 결과를 확인하고 `Up` 상태를 유지한다.
+
+4\. 만약 일정 시간 동안 목적지로부터 Test Packet에 대한 응답을 받지 못하면 IP SLA Operation이 실패한다.
+
+5\. Object Tracking은 `delay down` 시간이 지난 후 `Down` 상태로 변경된다.
+
+6\. Track과 연결된 Primary Static Route가 Routing Table에서 제거된다.
+
+7\. AD 값이 높은 Floating Static Route가 Routing Table에 등록되어 Backup 경로로 Traffic을 전달한다.
+
+8\. Primary 경로가 복구되면 IP SLA가 다시 응답을 받는다.
+
+9\. `delay up` 시간이 지난 후 Track이 `Up`으로 변경되고 Primary Route가 다시 등록된다.
+
+---
+
