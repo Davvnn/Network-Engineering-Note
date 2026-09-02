@@ -336,3 +336,293 @@ MLS2(config-if)# vrrp 10 priority 100
 8\. Client는 Default Gateway 설정을 변경하지 않고 MLS2를 통해 통신한다.
 
 ---
+
+## 예시 및 구성도
+
+### 사내 Default Gateway 이중화
+
+`MASON` 회사의 VLAN `10` Client 대역은 MLS1이 단독으로 Default Gateway 역할을 수행하고 있다. 따라서 MLS1 장비나 Uplink에 장애가 발생하면 Client들의 외부 Network 접속이 중단되어 업무에 문제가 발생할 수 있다.
+
+관리자는 이러한 장애에 대비하여 MLS2를 추가하고, Default Gateway를 이중화하기 위해 두 장비에 HSRP를 구성하였다.
+
+Client는 Virtual IP Address `192.168.10.1`을 Default Gateway로 사용한다. 정상 상태에서는 MLS1이 Active Gateway 역할을 수행하며, MLS1 또는 Uplink에 장애가 발생하면 MLS2가 Active 역할을 이어받는다.
+
+![](images/24-hsrp-eg.png)
+
+### HSRP 구성 및 동작 과정
+
+1\. MLS1과 MLS2 사이의 `Gi1/0/48`을 L2 Trunk로 설정한다.
+
+MLS1 설정:
+```
+MLS1(config)# vlan 10
+
+MLS1(config)# interface gi1/0/48
+MLS1(config-if)# description L2_TRUNK_TO_MLS2
+MLS1(config-if)# switchport
+MLS1(config-if)# switchport mode trunk
+MLS1(config-if)# switchport trunk allowed vlan 10
+MLS1(config-if)# no shutdown
+```
+
+MLS2 설정:
+```
+MLS2(config)# vlan 10
+
+MLS2(config)# interface gi1/0/48
+MLS2(config-if)# description L2_TRUNK_TO_MLS1
+MLS2(config-if)# switchport
+MLS2(config-if)# switchport mode trunk
+MLS2(config-if)# switchport trunk allowed vlan 10
+MLS2(config-if)# no shutdown
+```
+
+2\. MLS1과 MLS2에서 ASW1 방향의 Interface를 Trunk로 설정한다.
+
+MLS1의 `Gi1/0/1`을 설정한다.
+```
+MLS1(config)# interface gi1/0/1
+MLS1(config-if)# description TRUNK_TO_ASW1
+MLS1(config-if)# switchport
+MLS1(config-if)# switchport mode trunk
+MLS1(config-if)# switchport trunk allowed vlan 10
+MLS1(config-if)# no shutdown
+```
+
+MLS2의 `Gi1/0/1`을 설정한다.
+```
+MLS2(config)# interface gi1/0/1
+MLS2(config-if)# description TRUNK_TO_ASW1
+MLS2(config-if)# switchport
+MLS2(config-if)# switchport mode trunk
+MLS2(config-if)# switchport trunk allowed vlan 10
+MLS2(config-if)# no shutdown
+```
+
+3\. ASW1의 Uplink와 Client Interface를 설정한다.
+
+```
+ASW1(config)# vlan 10
+
+ASW1(config)# interface gi0/1
+ASW1(config-if)# description TRUNK_TO_MLS1
+ASW1(config-if)# switchport mode trunk
+ASW1(config-if)# switchport trunk allowed vlan 10
+ASW1(config-if)# no shutdown
+
+ASW1(config)# interface gi0/2
+ASW1(config-if)# description TRUNK_TO_MLS2
+ASW1(config-if)# switchport mode trunk
+ASW1(config-if)# switchport trunk allowed vlan 10
+ASW1(config-if)# no shutdown
+
+ASW1(config)# interface gi0/10
+ASW1(config-if)# description VLAN10_CLIENT
+ASW1(config-if)# switchport mode access
+ASW1(config-if)# switchport access vlan 10
+ASW1(config-if)# spanning-tree portfast
+ASW1(config-if)# no shutdown
+```
+
+4\. MLS1과 MLS2에 VLAN `10`의 SVI와 HSRP를 설정한다.
+
+MLS1 설정:
+```
+MLS1(config)# ip routing
+
+MLS1(config)# interface vlan 10
+MLS1(config-if)# ip address 192.168.10.2 255.255.255.0
+MLS1(config-if)# standby version 2
+MLS1(config-if)# standby 10 ip 192.168.10.1
+MLS1(config-if)# standby 10 priority 110
+MLS1(config-if)# standby 10 preempt delay minimum 60
+MLS1(config-if)# no shutdown
+```
+
+MLS2 설정:
+```
+MLS2(config)# ip routing
+
+MLS2(config)# interface vlan 10
+MLS2(config-if)# ip address 192.168.10.3 255.255.255.0
+MLS2(config-if)# standby version 2
+MLS2(config-if)# standby 10 ip 192.168.10.1
+MLS2(config-if)# standby 10 priority 100
+MLS2(config-if)# standby 10 preempt
+MLS2(config-if)# no shutdown
+```
+
+5\. L2 Loop를 방지하기 위해 STP Root Bridge를 지정한다.
+- MLS1, MLS2 및 ASW1이 L2 Trunk로 삼각형을 구성하므로 STP가 중복 Link 중 하나를 Blocking 상태로 전환한다.
+
+HSRP Active인 MLS1을 VLAN `10`의 STP Root Primary로 설정한다.
+```
+MLS1(config)# spanning-tree vlan 10 root primary
+MLS2(config)# spanning-tree vlan 10 root secondary
+```
+
+상태를 확인한다.
+```
+MLS1# show spanning-tree vlan 10
+MLS2# show spanning-tree vlan 10
+ASW1# show spanning-tree vlan 10
+```
+
+6\. Priority가 높은 MLS1이 Active 장비로 선출된다.
+
+7\. Client는 Virtual IP Address를 Default Gateway로 사용한다.
+```
+Client IP Address: 192.168.10.100
+Subnet Mask: 255.255.255.0
+Default Gateway: 192.168.10.1
+```
+
+통신과 ARP 정보를 확인한다.
+```
+Client> ping 192.168.10.1
+Client> arp -a
+```
+
+8\. MLS1의 `Gi1/0/47` Uplink 상태를 Object Tracking으로 확인한다.
+
+```
+MLS1(config)# track 1 interface gi1/0/47 line-protocol
+
+MLS1(config)# interface vlan 10
+MLS1(config-if)# standby 10 track 1 decrement 20
+```
+
+9\. Priority가 더 높아진 MLS2가 Active 상태로 전환된다.
+- MLS2는 Virtual IP Address와 Virtual MAC Address를 사용하여 Traffic을 전달한다.
+- Gratuitous ARP가 전송되면 ASW1은 Virtual MAC Address를 현재 STP Forwarding 경로 방향으로 다시 학습한다.
+
+10\. Client는 Default Gateway 설정을 변경하지 않고 MLS2를 통해 통신한다.
+```
+Client> ping 10.0.0.20 -t
+```
+
+11\. MLS1의 Uplink가 복구되면 MLS1이 다시 Active 역할을 가져온다.
+
+---
+
+## 명령어
+
+### HSRP Object Tracking 설정
+
+SW1과 SW2에서 자신의 Uplink Interface 상태를 추적한다.
+```
+SW1(config)# track 1 interface gi0/1 line-protocol
+```
+
+### HSRP 설정
+
+SW1을 Active 장비로 사용하도록 Priority를 `110`으로 설정한다.
+```
+SW1(config)# interface vlan 10
+SW1(config-if)# ip address 192.168.10.2 255.255.255.0
+SW1(config-if)# standby version 2
+SW1(config-if)# standby 10 ip 192.168.10.1
+SW1(config-if)# standby 10 priority 110
+SW1(config-if)# standby 10 preempt delay minimum 30
+SW1(config-if)# standby 10 track 1 decrement 20
+```
+- `standby version 2`: HSRP Version 2를 사용한다.
+- `standby 10 ip`: Group `10`의 Virtual IP Address를 설정한다.
+- `priority 110`: SW1의 Priority를 `110`으로 설정한다.
+- `preempt`: 더 높은 Priority를 가지면 Active 역할을 가져온다.
+- `delay minimum 30`: 장비 복구 후 30초 동안 기다린 후 Preempt한다.
+- `track 1 decrement 20`: Track `1`이 Down되면 Priority를 `20`만큼 낮춘다.
+
+SW2를 Standby 장비로 설정한다.
+```
+SW2(config)# interface vlan 10
+SW2(config-if)# ip address 192.168.10.3 255.255.255.0
+SW2(config-if)# standby version 2
+SW2(config-if)# standby 10 ip 192.168.10.1
+SW2(config-if)# standby 10 priority 100
+SW2(config-if)# standby 10 preempt
+SW2(config-if)# standby 10 track 1 decrement 20
+```
+
+SW1의 Uplink 장애로 Priority가 `90`까지 감소하면 SW2가 Active 역할을 가져간다.
+
+### HSRP Timer 설정
+
+Hello Time을 `1초`, Hold Time을 `3초`로 설정한다.
+```
+SW1(config-if)# standby 10 timers 1 3
+SW2(config-if)# standby 10 timers 1 3
+```
+
+Timer를 너무 짧게 설정하면 순간적인 Packet Loss나 장비 부하로 인해 불필요한 Failover가 발생할 수 있다.
+
+### HSRP 상태 확인
+
+```
+SW1# show standby
+SW1# show standby brief
+SW1# show standby vlan 10
+SW1# show track 1
+```
+- `show standby`: HSRP Group의 상세 정보를 확인한다.
+ 확인한다.
+- `show standby brief`: Active, Standby, Priority 및 Virtual IP Address를 간략하게 확인한다.
+- `show track 1`: Tracking Object의 상태를 확인한다.
+
+## Troubleshooting
+
+### HSRP 또는 VRRP가 정상적으로 형성되지 않는 경우
+
+1.\ HSRP가 설정된 VLAN Interface와 두 장비 사이의 Trunk Link가 Up 상태인지 확인한다.  
+
+2\. 두 장비 사이의 Trunk Link에서 HSRP가 설정된 VLAN이 정상적으로 전달되는지 확인한다.
+
+3\. Group Number와 Virtual IP Address가 동일한지 확인한다.
+
+4\. HSRP를 사용한다면 Version이 동일한지 확인한다.
+
+5\. HSRP 또는 VRRP Message가 ACL에서 차단되고 있는지 확인한다.
+- HSRP Version 2: Multicast `224.0.0.102`, UDP Port `1985`
+- VRRP: Multicast `224.0.0.18`, IP Protocol `112`
+
+6\. 높은 Priority의 장비가 Gateway 역할을 가져오지 못하면 Preempt 설정을 확인한다.
+
+7\. Uplink 장애에도 Failover되지 않으면 Object Tracking과 감소된 Priority를 확인한다.
+```
+SW1# show track 1
+SW1# show standby
+SW1# show vrrp
+```
+
+8\. Client의 Default Gateway가 실제 장비의 IP Address가 아니라 Virtual IP Address로 설정되어 있는지 확인한다.
+
+---
+
+## 주요 질문
+
+FHRP를 사용하는 이유는 무엇인가?
+- Client의 Default Gateway를 이중화하여 하나의 Gateway 장비에 장애가 발생해도 다른 장비를 통해 통신을 유지하기 위해 사용한다.
+
+HA, Redundancy 및 Fault Tolerance의 차이는 무엇인가?
+- Redundancy는 장비나 Link를 여러 개 구성하는 것이고, Fault Tolerance는 장애 발생 시 다른 장비가 역할을 이어받는 것이며, HA는 이러한 구성을 통해 서비스 가용성을 높이는 것이다.
+
+Client의 Default Gateway에는 어떤 IP Address를 설정하는가?
+- HSRP 또는 VRRP에서 사용하는 Virtual IP Address를 설정한다.
+
+Virtual IP Address와 Virtual MAC Address를 사용하는 이유는 무엇인가?
+- Gateway 역할이 다른 장비로 전환되어도 Client가 Default Gateway와 ARP 정보를 변경하지 않고 계속 통신할 수 있도록 사용한다.
+
+Priority는 어떤 역할을 하는가?
+- HSRP의 Active 또는 VRRP의 Master 장비를 선출하며 값이 높을수록 우선한다.
+
+Preempt는 어떤 역할을 하는가?
+- 더 높은 Priority를 가진 장비가 현재 Active 또는 Master 역할을 가져올 수 있도록 한다.
+
+Object Tracking을 사용하는 이유는 무엇인가?
+- Uplink에 장애가 발생했을 때 Priority를 낮추어 정상적인 Uplink를 가진 Backup 장비로 Traffic을 전환하기 위해 사용한다.
+
+GLBP는 HSRP 및 VRRP와 어떤 차이가 있는가?
+- HSRP와 VRRP는 하나의 Group에서 하나의 장비가 주로 Traffic을 전달하지만, GLBP는 여러 AVF가 Traffic 전달에 참여하여 Gateway Load Balancing을 제공한다.
+
+Gateway 장애가 발생하면 통신이 완전히 중단되지 않는가?
+- 장애를 감지하고 Backup 장비가 역할을 이어받는 동안 짧은 통신 중단이 발생할 수 있다.
