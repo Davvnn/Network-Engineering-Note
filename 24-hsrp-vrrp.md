@@ -569,6 +569,8 @@ SW1# show track 1
 - `show standby brief`: Active, Standby, Priority 및 Virtual IP Address를 간략하게 확인한다.
 - `show track 1`: Tracking Object의 상태를 확인한다.
 
+---
+
 ## Troubleshooting
 
 ### HSRP 또는 VRRP가 정상적으로 형성되지 않는 경우
