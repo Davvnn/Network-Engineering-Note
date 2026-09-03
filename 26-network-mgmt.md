@@ -106,15 +106,16 @@ Flow Exporter: 수집한 정보를 어느 Flow Collector로 전송할지 지정�
 Flow Collector: 장비가 전송한 Flow 정보를 수신하고 분석하는 Server이다.
 
 ```
-192.168.10.100 → 198.51.100.10:443
-                  ↓
-Gi0/0의 Flow Monitor가 Traffic 확인
-                  ↓
-Flow Record가 IP Address, Port 및 전송량 수집
-                  ↓
-Flow Exporter가 10.0.0.50로 정보 전송
-                  ↓
-Flow Collector가 통신 내역을 분석하고 표시
+192.168.10.100:51000 → 198.51.100.10:443
+                       ↓
+Gi0/0에 적용된 Flow Monitor가 Traffic 확인
+                       ↓
+Flow Monitor가 Flow Record에 지정된
+IP Address, Port 및 전송량을 Cache에 저장
+                       ↓
+Flow Exporter가 수집한 정보를 10.0.0.50으로 전송
+                       ↓
+Flow Collector가 Flow 정보를 분석하고 화면에 표시
 ```
 
 ### IPFIX
@@ -123,7 +124,49 @@ IPFIX(IP Flow Information Export)는 NetFlow Version 9를 기반으로 만들어
 
 IPFIX는 NetFlow와 같은 목적으로 사용하며, 여러 제조사의 장비에서 사용할 수 있는 표준 Protocol이다.
 
-
 ---
 
+## 동작 원리
+
+### NTP 동작 과정
+
+1\. Network 장비는 설정된 NTP Server로 시간 정보를 요청한다.
+
+2\. NTP Server는 자신의 시간과 Stratum 정보를 응답한다.
+
+3\. Network 장비는 자신의 시간을 조정한다.
+
+4\. 이후 장비는 주기적으로 NTP Server와 통신하여 시간을 계속 동기화한다.
+
+### SNMP 동작 과정
+
+1\. NMS는 SNMP Agent가 실행 중인 Network 장비로 정보를 요청한다.
+
+2\. Network 장비는 해당 OID의 정보를 확인한다.
+
+3\. 장비는 CPU, Memory 및 Interface Traffic 등의 정보를 NMS에 응답한다.
+
+4\. 장애가 발생하면 장비는 NMS의 요청을 기다리지 않고 Trap 또는 Inform을 전송할 수 있다.
+
+### Syslog 동작 과정
+
+1\. Network 장비에서 Interface Down, Login 실패 또는 Configuration 변경과 같은 Event가 발생한다.
+
+2\. 장비는 Event에 맞는 Severity Level의 Syslog Message를 생성한다.
+
+3\. 설정된 Severity 범위에 포함되면 Syslog Server로 Message를 전송한다.
+
+4\. 관리자는 Syslog Server에서 장비들의 Message를 확인한다.
+
+### NetFlow/IPFIX 동작 과정
+
+1\. Interface를 통과하는 Packet은 Flow Monitor를 통해서 확인된다.
+
+2\. Source/Destination IP Address, Port 및 Protocol 등이 같으면 하나의 Flow로 수집된다.
+
+3\. Packet 수, Byte 수 및 통신 시간 등의 정보가 Flow Cache에 저장된다.
+
+4\. Flow Exporter는 수집한 정보를 NetFlow 또는 IPFIX 형식으로 Collector에 전송한다.
+
+5\. Collector는 Flow 정보를 분석하여 Traffic 사용량과 비정상적인 통신을 확인한다.
 
