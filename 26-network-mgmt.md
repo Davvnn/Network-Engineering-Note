@@ -170,3 +170,188 @@ IPFIX는 NetFlow와 같은 목적으로 사용하며, 여러 제조사의 장비
 
 5\. Collector는 Flow 정보를 분석하여 Traffic 사용량과 비정상적인 통신을 확인한다.
 
+---
+
+## 예시 및 구성
+
+### 사내 Network 통합 Monitoring
+
+`MASON` 회사는 Router와 Switch의 시간, 장애 Message 및 Traffic 사용량을 하나의 Monitoring 환경에서 확인하려고 한다.
+
+관리자는 NTP Server, NMS, Syslog Server 및 Flow Collector를 구성하고 R1이 각 Server로 정보를 전송하도록 설정하였다.
+
+![](images/26-net-mgmt-eg.png)
+
+### NTP 설정
+
+R1의 표시 시간을 한국 시간으로 설정하고 NTP Server와 시간을 동기화한다.
+```
+R1(config)# clock timezone KST 9 0
+R1(config)# ntp server 10.0.0.10 source loopback0 prefer
+```
+- `clock timezone KST 9 0`: 장비의 표시 시간을 한국 시간으로 설정한다.
+- `source loopback0`: NTP Packet의 Source IP Address로 Loopback0을 사용한다.
+- `prefer`: 여러 NTP Server가 있을 때 해당 Server를 우선 사용한다.
+
+### SNMPv3 설정
+
+NMS Server `10.0.0.20`만 R1의 SNMP 정보에 접근할 수 있도록 설정한다.
+```
+R1(config)# ip access-list standard SNMP-MANAGER
+R1(config-std-nacl)# permit host 10.0.0.20
+R1(config-std-nacl)# exit
+
+R1(config)# snmp-server group NMS-GROUP v3 priv access SNMP-MANAGER
+R1(config)# snmp-server user NMS-USER NMS-GROUP v3 auth sha AUTH-PASSWORD priv aes 128 PRIV-PASSWORD
+R1(config)# snmp-server host 10.0.0.20 version 3 priv NMS-USER
+R1(config)# snmp-server enable traps
+R1(config)# snmp-server trap-source loopback0
+```
+- `v3 priv`: 사용자 인증과 암호화를 모두 사용한다.
+- `auth sha`: SHA를 사용하여 사용자를 인증한다.
+- `priv aes 128`: AES 128을 사용하여 SNMP 정보를 암호화한다.
+- `snmp-server host`: Trap을 전송할 NMS Server를 지정한다.
+- `snmp-server enable traps`: SNMP Trap 전송을 활성화한다.
+- 실제 환경에서는 안전한 인증 및 암호화 Password를 사용한다.
+
+### Syslog 설정
+
+R1의 Syslog Message를 Syslog Server `10.0.0.30`으로 전송한다.
+```
+R1(config)# service timestamps log datetime msec localtime show-timezone
+R1(config)# logging host 10.0.0.30
+R1(config)# logging source-interface loopback0
+R1(config)# logging trap warnings
+```
+- `service timestamps`: Syslog Message에 날짜, 시간 및 Millisecond를 표시한다.
+- `logging host`: Syslog Server의 IP Address를 지정한다.
+- `logging source-interface`: Syslog Packet의 Source Interface를 지정한다.
+- `logging trap warnings`: Severity Level `0~4`의 Message를 Syslog Server로 전송한다.
+
+### Flexible NetFlow 설정
+
+Traffic에서 수집할 정보를 Flow Record로 설정한다.
+```
+R1(config)# flow record TRAFFIC-RECORD
+R1(config-flow-record)# match ipv4 source address
+R1(config-flow-record)# match ipv4 destination address
+R1(config-flow-record)# match ip protocol
+R1(config-flow-record)# match transport source-port
+R1(config-flow-record)# match transport destination-port
+R1(config-flow-record)# collect counter packets long
+R1(config-flow-record)# collect counter bytes long
+R1(config-flow-record)# exit
+```
+
+Flow Collector와 NetFlow Export 형식을 설정한다.
+```
+R1(config)# flow exporter NETFLOW-EXPORTER
+R1(config-flow-exporter)# destination 10.0.0.40
+R1(config-flow-exporter)# source loopback0
+R1(config-flow-exporter)# transport udp 2055
+R1(config-flow-exporter)# export-protocol netflow-v9
+R1(config-flow-exporter)# template data timeout 60
+R1(config-flow-exporter)# exit
+```
+
+Flow Record와 Flow Exporter를 Flow Monitor에 연결한다.
+```
+R1(config)# flow monitor TRAFFIC-MONITOR
+R1(config-flow-monitor)# record TRAFFIC-RECORD
+R1(config-flow-monitor)# exporter NETFLOW-EXPORTER
+R1(config-flow-monitor)# cache timeout active 60
+R1(config-flow-monitor)# exit
+```
+
+Traffic을 확인할 Interface에 Flow Monitor를 적용한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# ip flow monitor TRAFFIC-MONITOR input
+R1(config-if)# ip flow monitor TRAFFIC-MONITOR output
+```
+- `input`: Interface로 들어오는 Traffic을 수집한다.
+- `output`: Interface에서 나가는 Traffic을 수집한다.
+
+--- 
+
+## Troubleshooting
+
+### Monitoring Server에서 Network 장비의 정보가 확인되지 않는 경우
+
+1\. Network 장비에서 Monitoring Server까지 Route가 존재하는지 확인한다.
+```
+R1# show ip route 10.0.0.20
+R1# ping 10.0.0.20 source loopback0
+```
+
+2\. Source Interface가 Up 상태이며 올바른 IP Address를 사용하고 있는지 확인한다.
+```
+R1# show ip interface brief
+R1# show interfaces loopback0
+```
+
+3\. NTP 시간이 동기화되지 않는다면 NTP Server와 Association 상태를 확인한다.
+```
+R1# show ntp status
+R1# show ntp associations
+```
+- `show ntp associations`에서 `*`가 없다면 현재 시간을 동기화하고 있는 NTP Server가 없는 상태이다.
+
+4\. NMS에서 SNMP 정보를 수집하지 못한다면 SNMP Version, 사용자 및 ACL 설정을 확인한다.
+```
+R1# show snmp
+R1# show snmp user
+R1# show snmp group
+R1# show access-lists SNMP-MANAGER
+```
+- NMS와 Network 장비의 SNMP Version, Username, 인증 방식 및 Password가 일치해야 한다.
+
+5\. Syslog Server에서 Message가 확인되지 않는다면 Server IP Address와 Severity 설정을 확인한다.
+```
+R1# show logging
+R1# show running-config | include logging
+```
+- `logging trap`에 설정된 Severity보다 높은 Number의 Message는 Syslog Server로 전송되지 않는다.
+
+6\. Flow Collector에서 NetFlow 정보가 확인되지 않는다면 Flow Monitor가 Interface에 적용되어 있는지 확인한다.
+```
+R1# show flow interface
+R1# show flow monitor TRAFFIC-MONITOR cache
+R1# show flow exporter NETFLOW-EXPORTER
+```
+
+7\. ACL이나 Firewall에서 Management Traffic을 차단하고 있지 않은지 확인한다.
+```
+R1# show access-lists
+R1# show ip interface
+```
+- NTP UDP Port `123`
+- SNMP UDP Port `161`, `162`
+- Syslog UDP Port `514`
+- NetFlow Collector에서 사용하는 UDP Port
+- IPFIX UDP Port `4739`
+
+---
+
+## 주요 질문
+
+NTP를 사용하는 이유는 무엇인가?
+- Network 장비들의 시간을 동기화하여 Syslog, SNMP Trap 및 장애 발생 시간을 정확하게 비교하기 위해 사용한다.
+
+SNMP Polling과 Trap의 차이는 무엇인가?
+- Polling은 NMS가 장비에 주기적으로 정보를 요청하는 방식이고, Trap은 Event가 발생했을 때 장비가 NMS로 알림을 보내는 방식이다.
+
+SNMP Trap과 Inform의 차이는 무엇인가?
+- Trap은 NMS의 수신 응답을 기다리지 않지만 Inform은 NMS의 응답을 확인하고 응답이 없으면 다시 전송할 수 있다.
+
+SNMPv2c와 SNMPv3의 차이는 무엇인가?
+- SNMPv2c는 Community String을 사용하며 암호화를 지원하지 않고, SNMPv3는 사용자 인증과 암호화를 지원한다.
+
+Syslog Severity Number가 낮다는 것은 무엇을 의미하는가?
+- Number가 낮을수록 더 심각한 Message이며, `0`이 가장 심각하고 `7`이 가장 상세한 Debugging Level이다.
+
+`logging trap warnings`는 Warning Message만 전송하는가?
+- 아니다, Warning Level인 `4`와 더 심각한 Level `0~3`의 Message를 모두 전송한다.
+
+Flow Record, Exporter 및 Monitor의 역할은 무엇인가?
+- Flow Record는 수집할 Traffic 정보를 지정하고, Monitor는 해당 정보를 Flow Cache에 저장하며, Exporter는 저장된 정보를 지정한 Flow Collector로 전송한다.
