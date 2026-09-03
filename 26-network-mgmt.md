@@ -274,6 +274,122 @@ R1(config-if)# ip flow monitor TRAFFIC-MONITOR output
 
 --- 
 
+## 명령어
+
+### Backup NTP Server 설정
+
+Primary NTP Server에 장애가 발생했을 때 사용할 Backup NTP Server를 설정한다.
+```
+R1(config)# ntp server 10.0.0.10 source loopback0 prefer
+R1(config)# ntp server 10.0.0.11 source loopback0
+```
+- `10.0.0.10`: 우선 사용할 Primary NTP Server이다.
+- `10.0.0.11`: Primary Server를 사용할 수 없을 때 사용할 Backup NTP Server이다.
+- `prefer`: 여러 NTP Server 중 해당 Server를 우선 사용한다.
+
+### NTP 상태 확인
+
+현재 시간과 NTP 동기화 상태를 확인한다.
+```
+R1# show clock detail
+R1# show ntp status
+R1# show ntp associations
+R1# show ntp associations detail
+```
+- `show clock detail`: 현재 장비의 시간과 Timezone을 확인한다.
+- `show ntp status`: NTP 동기화 여부와 Stratum을 확인한다.
+- `show ntp associations`: 연결된 NTP Server와 현재 선택된 Server를 확인한다.
+- `*`: 현재 시간을 동기화하고 있는 NTP Server이다.
+
+### SNMPv2c 설정
+
+SNMPv2c를 사용하여 NMS Server가 장비의 정보를 조회하도록 설정한다.
+```
+R1(config)# ip access-list standard SNMP-MANAGER
+R1(config-std-nacl)# permit host 10.0.0.20
+R1(config-std-nacl)# exit
+
+R1(config)# snmp-server community MONITOR-RO ro SNMP-MANAGER
+R1(config)# snmp-server host 10.0.0.20 version 2c MONITOR-RO
+R1(config)# snmp-server enable traps
+```
+- `MONITOR-RO`: SNMP Community String이다.
+- `ro`: NMS에서 장비 정보를 조회만 할 수 있도록 설정한다.
+- `MONITOR-RO`는 Network 장비와 NMS가 함께 사용하는 SNMP Community String이다.
+- `SNMP-MANAGER`: NMS Server `10.0.0.20`만 SNMP 접근을 허용한다.
+- `traps`: 장비에서 Event가 발생했을 때 SNMP 알림을 생성하도록 활성화하는 명령어이다.
+
+### SNMP 장비 정보 설정
+
+NMS에서 장비의 설치 위치와 담당자 정보를 확인할 수 있도록 설정한다.
+```
+R1(config)# snmp-server location MASON-HQ
+R1(config)# snmp-server contact NETWORK-TEAM
+R1(config)# snmp-server ifindex persist
+```
+- `snmp-server location`: 장비가 설치된 위치를 설정한다.
+- `snmp-server contact`: 장비 담당자 정보를 설정한다.
+- `snmp-server ifindex persist`: 장비가 재부팅되어도 Interface의 SNMP Index가 변경되지 않도록 유지한다.
+
+### SNMP 상태 확인
+
+SNMP Agent, 사용자, Group 및 NMS Server 설정을 확인한다.
+```
+R1# show snmp
+R1# show snmp user
+R1# show snmp group
+R1# show snmp host
+R1# show snmp engineID
+```
+- `show snmp`: SNMP Packet과 Trap 전송 상태를 확인한다.
+- `show snmp user`: SNMPv3 사용자와 인증 방식을 확인한다.
+- `show snmp group`: SNMP Group과 보안 수준을 확인한다.
+- `show snmp host`: Trap 또는 Inform을 전송할 NMS Server를 확인한다.
+
+### 원격 접속에서 Syslog 확인
+
+SSH 또는 Telnet으로 접속한 Terminal에서 Syslog Message를 실시간으로 확인한다.
+```
+R1# terminal monitor
+```
+- `terminal monitor`: 현재 원격 접속 화면에 Syslog Message를 표시한다.
+
+### Syslog 상태 확인
+
+Syslog Server, Severity 및 장비 내부 Buffer의 Message를 확인한다.
+```
+R1# show logging
+```
+- `show logging`: Syslog Server 설정과 저장된 Message를 확인한다.
+
+### Flow Cache Timeout 설정
+
+오래 지속되는 Flow와 통신이 끝난 Flow를 Collector로 전송할 시간을 설정한다.
+```
+R1(config)# flow monitor TRAFFIC-MONITOR
+R1(config-flow-monitor)# cache timeout active 60
+R1(config-flow-monitor)# cache timeout inactive 15
+R1(config-flow-monitor)# exit
+```
+- `active 60`: 계속 통신 중인 Flow 정보를 `60초`마다 Collector로 전송한다.
+- `inactive 15`: 새로운 Packet이 `15초` 동안 확인되지 않으면 해당 Flow가 끝난 것으로 판단하고 전송한다.
+
+### Flexible NetFlow 상태 확인
+
+Flow Record, Exporter, Monitor 및 Interface 적용 상태를 확인한다.
+```
+R1# show flow record TRAFFIC-RECORD
+R1# show flow exporter NETFLOW-EXPORTER
+R1# show flow monitor TRAFFIC-MONITOR
+R1# show flow monitor TRAFFIC-MONITOR cache
+```
+- `show flow record`: 수집하도록 설정한 Traffic 정보를 확인한다.
+- `show flow exporter`: Collector의 IP Address, UDP Port 및 전송 횟수를 확인한다.
+- `show flow monitor`: 연결된 Flow Record와 Exporter를 확인한다.
+- `show flow monitor cache`: 현재 장비가 수집한 Flow 정보를 확인한다.
+
+---
+
 ## Troubleshooting
 
 ### Monitoring Server에서 Network 장비의 정보가 확인되지 않는 경우
