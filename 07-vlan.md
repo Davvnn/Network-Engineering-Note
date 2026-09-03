@@ -96,7 +96,7 @@ SW1 & SW2
 - Allowed VLAN: `10,20,99`
 - Native VLAN: `99`
 
-![](images/07-vlan-com.png)
+![](images/07-vlan-eg.png)
 
 1\. PC1은 PC2의 MAC Address를 Destination MAC Address로 지정한 Ethernet Frame을 생성하고, 연결된 인터페이스를 통해 SW1의 `Gi0/1`로 전송한다.
 
