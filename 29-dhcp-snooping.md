@@ -152,3 +152,66 @@ IP Source Guard
 - 확인 정보: Source IP Address, MAC Address, VLAN 및 Interface
 
 ---
+
+## 동작 원리
+
+### DHCP Snooping 동작 과정
+
+1\. Client가 DHCP Discover Message를 전송한다.
+
+2\. SW1은 Client Port가 Untrusted Port인지 확인한다.
+
+3\. DHCP Discover는 Client가 보내는 Message이므로 정상적으로 전달한다.
+
+4\. 정상 DHCP Server가 DHCP Offer Message를 전송한다.
+
+5\. DHCP Offer가 Trusted Port로 들어오면 Client에게 전달한다.
+
+6\. Client가 IP Address를 할당받으면 SW1은 IP Address, MAC Address, VLAN 및 Interface 정보를 Binding Table에 저장한다.
+
+7\. Untrusted Port에서 DHCP Offer나 ACK가 들어오면 Rogue DHCP Server가 보낸 Message로 판단하여 차단한다.
+
+### DAI 동작 과정
+
+1\. Client가 ARP Request 또는 ARP Reply를 Switch로 전송한다.
+
+2\. SW1은 ARP Packet이 들어온 Interface가 Trusted Port인지 Untrusted Port인지 확인한다.
+
+3\. Trusted Port에서 들어온 ARP Packet은 검사하지 않고 전달한다.
+
+4\. Untrusted Port에서 들어온 ARP Packet은 SW1에 저장된 DHCP Snooping Binding Table과 비교한다.
+```
+ARP Packet
+
+IP Address: 192.168.10.100
+MAC Address: aaaa.bbbb.cccc
+VLAN: 10
+Interface: Gi1/0/1
+```
+5\. ARP Packet의 IP Address, MAC Address, VLAN 및 Interface가 Binding Table의 정보와 일치하면 정상적인 ARP Packet으로 판단하여 전달한다.
+
+6\. 정보가 일치하지 않으면 ARP Spoofing으로 판단하여 해당 ARP Packet을 차단하고 Log를 남긴다.
+
+### IP Source Guard 동작 과정
+
+1\. Client가 DHCP Server에서 IP Address를 할당받는다.
+
+2\. DHCP Snooping이 DHCP 할당 과정을 확인하고 Client 정보를 SW1의 Binding Table에 저장한다.
+```
+DHCP Snooping Binding Table
+
+IP Address: 192.168.10.100
+MAC Address: aaaa.bbbb.cccc
+VLAN: 10
+Interface: Gi1/0/1
+```
+3\. Client가 `Gi1/0/1`을 통해 IP Packet을 전송한다.
+
+4\. IP Source Guard는 Packet의 Source IP Address가 `Gi1/0/1`과 VLAN 10에 등록된 Binding 정보와 일치하는지 확인한다.
+
+5\. Source IP Address가 `192.168.10.100`이면 정상적인 Client의 Packet으로 판단하여 전달한다.
+
+6\. Packet의 Source IP Address가 Packet이 들어온 Interface에 등록된 Binding 정보와 일치하지 않으면 해당 Packet을 차단한다.  
+
+---
+
