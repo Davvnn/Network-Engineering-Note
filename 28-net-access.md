@@ -56,7 +56,7 @@ MAB(MAC Authentication Bypass)는 802.1X 인증을 사용할 수 없는 장비�
 다음과 같은 장비에 사용할 수 있다.
 
 관리자는 MAB 인증을 허용할 단말의 MAC Address를 RADIUS Server에 미리 등록해야 한다.
-- - Printer
+- Printer
 - IP Phone
 - Camera
 - IoT 장비
