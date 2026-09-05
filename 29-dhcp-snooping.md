@@ -215,3 +215,199 @@ Interface: Gi1/0/1
 
 ---
 
+## 예시 및 구성
+
+### 사내 Client Network 보호
+
+`MASON` 회사는 VLAN `10`을 업무용 Client Network로 사용하고 있다.
+
+공격자가 허가되지 않은 DHCP Server를 연결하거나 Gateway의 IP Address를 위조하면 Client의 통신이 중단되거나 Traffic이 공격자에게 전달될 수 있다.
+
+관리자는 ASW1에 DHCP Snooping, DAI 및 IP Source Guard를 설정하여 Client Network를 보호한다.
+
+![](images/29-dhcp-snooping-eg.png)
+
+### DHCP Snooping 구성
+
+1\. DHCP Snooping을 활성화하고 VLAN `10`에 적용한다.
+```
+ASW1(config)# ip dhcp snooping
+ASW1(config)# ip dhcp snooping vlan 10
+```
+- `ip dhcp snooping`: DHCP Snooping 기능을 활성화한다.
+- `ip dhcp snooping vlan 10`: VLAN `10`의 DHCP Packet을 검사한다.
+
+2\. 정상 DHCP Server 방향의 Uplink를 Trusted Port로 설정한다.
+```
+ASW1(config)# interface gi1/0/48
+ASW1(config-if)# description UPLINK_TO_DHCP_SERVER
+ASW1(config-if)# ip dhcp snooping trust
+ASW1(config-if)# exit
+```
+
+3\. Client Interface에 DHCP Rate Limit을 설정한다.
+```
+ASW1(config)# interface range gi1/0/1-2
+ASW1(config-if-range)# ip dhcp snooping limit rate 15
+ASW1(config-if-range)# exit
+```
+
+### DAI 구성
+
+1\. VLAN `10`에 DAI를 활성화한다.
+```
+ASW1(config)# ip arp inspection vlan 10
+```
+
+2\. 정상적인 Switch와 Gateway 방향의 Uplink를 DAI Trusted Port로 설정한다.
+```
+ASW1(config)# interface gi1/0/48
+ASW1(config-if)# ip arp inspection trust
+ASW1(config-if)# exit
+```
+
+### IP Source Guard 구성
+
+Client Interface에 IP Source Guard를 설정한다.
+```
+ASW1(config)# interface range gi1/0/1-2
+ASW1(config-if-range)# ip verify source
+ASW1(config-if-range)# exit
+```
+
+Source IP Address와 MAC Address를 모두 검사하려면 다음과 같이 설정한다.
+```
+ASW1(config-if)# ip verify source mac-check
+```
+
+### Static IP Address를 사용하는 Client
+
+Static IP Address를 사용하는 Client는 DHCP 과정을 거치지 않으므로 DHCP Snooping Binding Table에 정보가 자동으로 생성되지 않는다.
+
+IP Source Guard를 사용한다면 Static Binding을 직접 설정한다.
+```
+ASW1(config)# ip source binding aaaa.bbbb.cccc vlan 10 192.168.10.10 interface gi1/0/10
+```
+
+
+DAI에서 Static IP Address를 사용하는 Client의 ARP Packet을 허용하려면 ARP ACL을 설정할 수 있다.
+```
+ASW1(config)# arp access-list STATIC-ARP
+ASW1(config-arp-nacl)# permit ip host 192.168.10.10 mac host aaaa.bbbb.cccc
+ASW1(config-arp-nacl)# exit
+
+ASW1(config)# ip arp inspection filter STATIC-ARP vlan 10
+```
+
+## 확인 명령어
+
+DHCP Snooping 설정을 확인한다.
+```
+ASW1# show ip dhcp snooping
+```
+
+DHCP Snooping Binding Table을 확인한다.
+```
+ASW1# show ip dhcp snooping binding
+```
+
+DHCP Snooping Packet 통계를 확인한다.
+```
+ASW1# show ip dhcp snooping statistics
+```
+
+DAI 설정과 상태를 확인한다.
+```
+ASW1# show ip arp inspection vlan 10
+ASW1# show ip arp inspection interfaces
+ASW1# show ip arp inspection statistics vlan 10
+```
+
+IP Source Guard 설정을 확인한다.
+```
+ASW1# show ip verify source
+ASW1# show ip verify source interface gi1/0/1
+```
+
+Static Binding을 포함한 IP Source Binding Table을 확인한다.
+```
+ASW1# show ip source binding
+```
+
+## Troubleshooting
+
+### DHCP Snooping, DAI 또는 IP Source Guard 적용 후 Client가 통신하지 못하는 경우
+
+1\. DHCP Snooping이 전역과 Client VLAN에 모두 활성화되어 있는지 확인한다.
+```
+ASW1# show ip dhcp snooping
+```
+
+다음 두 설정이 모두 필요하다.
+```
+ASW1(config)# ip dhcp snooping
+ASW1(config)# ip dhcp snooping vlan 10
+```
+
+2\. 정상 DHCP Server 방향의 Interface가 Trusted Port인지 확인한다.
+```
+ASW1# show ip dhcp snooping
+ASW1# show running-config interface gi1/0/48
+```
+
+Trusted 설정이 없다면 DHCP Server의 Offer와 ACK가 차단될 수 있다.
+```
+ASW1(config)# interface gi1/0/48
+ASW1(config-if)# ip dhcp snooping trust
+```
+
+3\. Client의 DHCP Snooping Binding이 생성되어 있는지 확인한다.
+```
+ASW1# show ip dhcp snooping binding
+```
+
+Binding이 없다면 DAI와 IP Source Guard가 Client Traffic을 차단할 수 있다.
+
+Client에서 IP Address를 다시 할당받아 Binding을 생성한다.
+```
+C:\> ipconfig /release
+C:\> ipconfig /renew
+```
+
+4\. Static IP Address를 사용하는 Client인지 확인한다.
+
+5\. DAI가 정상적인 ARP Packet을 차단하고 있는지 확인한다.
+```
+ASW1# show ip arp inspection statistics vlan 10
+ASW1# show logging
+```
+- DHCP Snooping Binding이 없는지 확인한다.
+- Client의 IP Address와 MAC Address가 Binding Table과 일치하는지 확인한다.
+- Uplink에 필요한 DAI Trust 설정이 있는지 확인한다.
+
+6\. IP Source Guard가 Client Interface에 적용되어 있는지 확인한다.
+```
+ASW1# show ip verify source interface gi1/0/1
+ASW1# show ip source binding
+```
+Client의 IP Address, MAC Address, VLAN 및 Interface가 Binding 정보와 일치해야 한다.
+
+7\. DHCP 또는 ARP Rate Limit을 초과하여 Interface가 Error-Disabled 상태인지 확인한다.
+```
+ASW1# show interfaces status err-disabled
+ASW1# show errdisable recovery
+```
+
+## 주요 질문
+
+DHCP Snooping은 무엇을 차단하는가?
+- Untrusted Port에서 들어오는 허가되지 않은 DHCP Server의 Offer, ACK 및 NAK Message를 차단한다.
+
+Trusted Port는 어디에 설정하는가?
+- 정상 DHCP Server나 DHCP Relay로 향하는 Interface에 설정한다.
+
+DAI는 무엇을 방지하는가?
+- IP Address와 MAC Address를 속이는 ARP Spoofing과 ARP Poisoning을 방지한다.
+
+IP Source Guard는 무엇을 방지하는가?
+- Client가 다른 장비의 IP Address를 Source IP Address로 사용하는 IP Spoofing을 방지한다.
