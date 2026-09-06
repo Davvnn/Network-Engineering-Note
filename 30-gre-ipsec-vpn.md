@@ -121,3 +121,19 @@ ESP(Encapsulating Security Payload)는 Packet의 암호화, 인증 및 무결성
 - ESP는 IP Protocol Number `50`을 사용한다.
 
 일반적인 IPsec VPN에서는 암호화를 제공하지 않는 AH보다 암호화와 무결성을 함께 제공하는 ESP를 사용한다.
+
+### Transport Mode
+
+Transport Mode는 기존 IP Header를 유지하고 IP Packet의 Payload를 보호하는 방식이다.
+
+기존 IP Header는 암호화되지 않기 때문에 Router는 Source와 Destination IP Address를 확인하여 Packet을 Forwarding할 수 있다.
+
+### Tunnel Mode
+
+Tunnel Mode는 원본 IP Packet 전체를 보호하고 새로운 Outer IP Header를 추가하는 방식이다.
+
+새로운 Outer IP Header에는 VPN 장비의 Public IP Address가 Source와 Destination으로 설정된다.
+
+ISP Router는 새로운 Outer IP Header의 Destination IP Address를 확인하여 상대방 VPN 장비까지 Packet을 Forwarding한다. 원본 IP Address, TCP/UDP Header 및 Data는 ESP로 암호화되어 있기 때문에 확인할 수 없다.
+
+일반적인 Site-to-Site IPsec VPN에서는 서로 다른 Network의 원본 IP Packet 전체를 보호하기 위해 주로 Tunnel Mode를 사용한다.
