@@ -17,7 +17,7 @@ R1(config)# line vty 0 4
 - `0 4`: 동시에 사용할 수 있는 VTY Line `5개`를 설정한다.
 - 장비에 따라 지원하는 VTY Line의 개수가 다를 수 있다.
 
-## SSH
+### SSH
 
 SSH(Secure Shell)는 Network 장비에 안전하게 원격 접속하기 위한 Protocol이다.
 
