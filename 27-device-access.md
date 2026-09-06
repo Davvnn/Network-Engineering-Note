@@ -171,7 +171,7 @@ TACACS+ Server에 장애가 발생할 경우를 대비하여 각 장비에는 �
 
 ![](images/27-device-access-eg.png)
 
-## SSH 구성
+### SSH 구성
 
 1\. 장비의 Hostname과 Domain Name을 설정한다.
 ```
@@ -224,7 +224,7 @@ R1(config-line)# exit
 - `access-class MGMT-ACCESS in`: 관리 Network에서 시작된 접속만 허용한다.
 - `exec-timeout 10 0`: 입력 없이 `10분`이 지나면 접속을 종료한다.
 
-## Telnet 구성
+### Telnet 구성
 
 Lab 환경에서 Telnet을 사용하는 경우이다.
 ```
@@ -234,7 +234,7 @@ R1(config-line)# transport input telnet
 R1(config-line)# exit
 ```
 
-## AAA Local Authentication 구성
+### AAA Local Authentication 구성
 
 1\. AAA 기능을 활성화한다.
 ```
@@ -259,7 +259,7 @@ R1(config-line)# exit
 - `login local`: 별도의 AAA Method List 없이 Local Database를 사용한다.
 - `login authentication VTY-LOGIN`: VTY Line에 `VTY-LOGIN` AAA Method List를 적용하여, 해당 List에 설정된 방식으로 SSH 사용자를 인증한다.  
 
-## TACACS+ 구성
+### TACACS+ 구성
 
 1\. 비상시에 사용할 Local 관리자 계정을 먼저 생성한다.
 ```
@@ -328,7 +328,7 @@ R1(config-line)# exec-timeout 10 0
 R1(config-line)# exit
 ```
 
-## RADIUS 구성
+### RADIUS 구성
 
 RADIUS Server를 이용하여 관리자 인증을 구성하는 예시이다.
 
@@ -372,7 +372,7 @@ R1(config-line)# exit
 Network 장비의 관리자 명령어를 세부적으로 제어해야 한다면 RADIUS보다 TACACS+를 사용하는 것이 낫다.
 
 
-## 명령어
+## 확인 명령어
 
 SSH Server의 활성화 상태와 Version을 확인한다.
 ```
