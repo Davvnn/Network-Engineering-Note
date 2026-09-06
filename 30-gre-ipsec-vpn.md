@@ -72,3 +72,52 @@ Data 1436 Byte
 → GRE Header 4 Byte + New Outer IP Header 20 Byte 추가
 = Total GRE Packet 1500 Byte
 ```
+
+### Recursive Routing
+
+Recursive Routing은 GRE Tunnel Destination으로 가는 경로가 다시 GRE Tunnel Interface를 가리키는 문제이다.
+
+여기서 Tunnel Destination은 상대방 Router의 Tunnel Interface IP Address가 아니라, GRE Packet을 실제로 전달할 상대방 Router의 WAN IP Address이다.
+
+예를 들어 R1의 Tunnel Destination이 `198.51.100.2`인 경우, R1은 해당 IP Address로 가는 경로를 Routing Table에서 확인한다. 정상적인 경우에는 물리적인 WAN Interface를 통해 ISP로 Packet을 전달해야 한다.
+
+그러나 Dynamic Routing Protocol을 통해 `198.51.100.2`로 가는 경로를 `Tunnel0`으로 학습하면, GRE Tunnel을 생성하기 위해 다시 GRE Tunnel을 사용하려는 문제가 발생한다.
+
+이를 방지하기 위해 Tunnel 내부에서는 본사와 지사의 내부 LAN Network만 광고하고, Tunnel Destination의 Public IP Address와 Underlay Network는 광고하지 않아야 한다.
+
+가장 확실한 방법은 Tunnel Destination에 대한 `/32` Static Route를 설정하여 해당 Traffic이 물리적인 WAN Interface를 통해 전달되도록 하는 것이다.
+
+### IPsec
+
+IPsec(Internet Protocol Security)은 IP Packet을 암호화하고 인증하여 안전하게 전달하는 기술이다.
+
+IPsec은 다음 보안 기능을 제공한다.
+- Authentication(인증): 신뢰할 수 있는 VPN Peer인지 확인한다.
+- Integrity(무결성): 전송 중 Packet이 변경되거나 조작되지 않았는지 확인한다.
+- Confidentiality(기밀성): Packet 내용을 암호화하여 다른 장비가 확인하지 못하도록 한다.
+- Anti-Replay(재전송 공격 방지): 공격자가 이전 Packet을 다시 전송하는 것을 방지한다.
+
+### AH
+
+AH(Authentication Header)는 Packet의 인증과 무결성을 제공하지만 암호화는 제공하지 않는다.
+- 무결성은 Packet이 전송되는 중간에 변경되거나 조작되지 않았는지 확인하는 기능이다.
+- Packet을 암호화하지 않기 때문에 TCP/UDP Header와 Data의 내용을 확인할 수 있다.
+
+![](images/30-ipsec-ah.png)
+- AH Transport Mode에서는 기존 IP Header와 TCP/UDP Header 사이에 AH Header가 추가된다.
+- AH Tunnel Mode에서는 원본 IP Packet 앞에 AH Header와 새로운 IP Header가 추가된다.
+- AH는 IP Protocol Number `51`을 사용한다.
+
+AH는 Data와 IP Header 일부의 무결성을 확인한다. 하지만 NAT 장비가 Source 또는 Destination IP Address를 변경하면 AH의 무결성 확인에 실패할 수 있기 때문에 NAT와 함께 사용하기 어렵다.
+
+### ESP
+
+ESP(Encapsulating Security Payload)는 Packet의 암호화, 인증 및 무결성을 제공한다.
+
+![](images/30-ipsec-esp.png)
+- ESP Header는 암호화된 Data 앞에 추가되고, ESP Trailer와 ESP Authentication 정보는 뒤에 추가된다.
+- ESP Transport Mode에서는 기존 IP Header를 유지하고 TCP/UDP Header와 Data를 암호화한다.
+- ESP Tunnel Mode에서는 원본 IP Packet 전체를 암호화하고 새로운 IP Header를 추가한다.
+- ESP는 IP Protocol Number `50`을 사용한다.
+
+일반적인 IPsec VPN에서는 암호화를 제공하지 않는 AH보다 암호화와 무결성을 함께 제공하는 ESP를 사용한다.
