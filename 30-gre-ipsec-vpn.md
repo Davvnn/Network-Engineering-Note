@@ -482,3 +482,140 @@ R2(config-crypto-map)# match address 110
 R2(config)# interface gi0/1
 R2(config-if)# crypto map GRE-MAP
 ```
+
+---
+
+## 확인 명령어
+
+GRE Tunnel Interface의 상태를 확인한다.
+```
+R1# show interfaces tunnel 0
+R1# show ip interface brief
+```
+
+Tunnel Destination이 물리적인 Underlay 경로를 사용하는지 확인한다.
+```
+R1# show ip route 198.51.100.2
+```
+
+IKEv1 SA 상태를 확인한다.
+```
+R1# show crypto isakmp sa
+```
+
+IKEv1 SA가 정상적으로 생성되면 일반적으로 `QM_IDLE` 상태를 확인할 수 있다.
+
+IPsec SA와 암호화 및 복호화 Counter를 확인한다.
+```
+R1# show crypto ipsec sa
+```
+- `encaps`: IPsec으로 Encapsulation한 Packet
+- `decaps`: IPsec을 Decapsulation한 Packet
+- `encrypt`: 암호화한 Packet 
+- `decrypt`: 복호화한 Packet
+
+Crypto Map과 Crypto ACL을 확인한다.
+```
+R1# show crypto map
+R1# show access-lists 110
+```
+
+---
+
+## Troubleshooting
+
+### GRE over IPsec 통신이 정상적으로 동작하지 않는 경우
+
+1\. 상대방 VPN Peer의 Public IP Address까지 통신할 수 있는지 확인한다.
+```
+R1# ping 198.51.100.2 source 203.0.113.2
+R1# show ip route 198.51.100.2
+```
+
+2\. Tunnel Destination으로 가는 Route가 `Tunnel0`이 아닌 물리적인 WAN 경로를 사용하는지 확인한다.
+- Tunnel Destination Route가 `Tunnel0`을 사용하면 Recursive Routing이 발생할 수 있다.
+
+3\. GRE Tunnel의 Source와 Destination이 올바르게 설정되어 있는지 확인한다.
+```
+R1# show running-config interface tunnel 0
+R1# show interfaces tunnel 0
+```
+
+4\. 상대방 Tunnel IP Address로 통신할 수 있는지 확인한다.
+```
+R1# ping 10.0.0.2
+```
+
+5\. 양쪽 Router의 IKE Version과 IKE Phase 1 설정이 서로 호환되는지 확인한다.
+- Encryption
+- Hash
+- Authentication
+- DH Group
+- Lifetime
+- Pre-Shared Key
+```
+R1# show crypto isakmp policy
+R1# show crypto isakmp sa
+```
+
+6\. 양쪽 Router의 Transform Set, IPsec Mode 및 PFS 설정이 서로 호환되는지 확인한다.
+```
+R1# show crypto ipsec transform-set
+```
+
+7\. Crypto ACL의 Source와 Destination이 양쪽에서 서로 반대 방향으로 설정되어 있는지 확인한다.
+```
+R1# show access-lists 110
+```
+
+8\. Crypto Map이 Public Interface에 적용되어 있는지 확인한다.
+```
+R1# show crypto map
+R1# show running-config interface gi0/1
+```
+
+9\. 실제 Traffic을 발생시킨 후 IPsec Counter가 증가하는지 확인한다.
+```
+R1# ping 192.168.20.1 source 192.168.10.1
+R1# show crypto ipsec sa
+```
+
+10\. 일반적인 Policy-Based Site-to-Site VPN이라면 VPN Traffic이 NAT/PAT 대상에서 제외되어 있는지 확인한다.
+
+11\. VPN Peer 사이에 NAT 장비가 있다면 NAT-T가 동작하는지 확인한다.
+
+12\. 중간 Firewall에서 필요한 Protocol과 Port를 허용하는지 확인한다.
+- IKE: UDP Port `500`
+- NAT-T: UDP Port `4500`
+- ESP: IP Protocol Number `50`
+
+---
+
+## 주요 질문
+
+GRE란 무엇인가?
+- 원본 Packet에 GRE Header와 새로운 IP Header를 추가하여 서로 떨어진 Router를 가상의 Point-to-Point Link로 연결하는 Tunneling Protocol이다.
+
+Underlay와 Overlay의 차이는 무엇인가?
+- Underlay는 GRE Packet을 실제로 전달하는 물리 Network이고, Overlay는 GRE Tunnel을 통해 생성된 논리적인 Network이다.
+
+GRE는 Traffic을 암호화하는가?
+- GRE는 암호화와 인증 기능을 제공하지 않으므로 보안이 필요하면 IPsec과 함께 사용해야 한다.
+
+GRE에서 Recursive Routing이 발생하는 이유는 무엇인가?
+- Tunnel Destination으로 가는 Route가 다시 Tunnel Interface를 가리키기 때문에 발생한다.
+
+GRE와 IPsec을 함께 사용하는 이유는 무엇인가?
+- GRE를 통해 Multicast와 Routing Protocol Traffic을 전달하고 IPsec을 통해 GRE Traffic을 암호화하기 위해 사용한다.
+
+IPsec은 어떤 보안 기능을 제공하는가?
+- VPN Peer 인증, Packet 무결성, 기밀성 및 Anti-Replay 기능을 제공한다.
+
+AH와 ESP의 차이는 무엇인가?
+- AH는 인증과 무결성을 제공하지만 암호화하지 않으며, ESP는 인증, 무결성 및 암호화를 제공한다.
+
+Transport Mode와 Tunnel Mode의 차이는 무엇인가?
+- Transport Mode는 기존 IP Header를 유지하고 Payload를 보호하며, Tunnel Mode는 원본 IP Packet 전체를 보호하고 새로운 IP Header를 추가한다.
+
+GRE over IPsec에서 MTU와 MSS를 조정하는 이유는 무엇인가?
+- GRE와 IPsec Header가 추가되어 Packet 크기가 증가하므로 Fragmentation이나 Packet Drop을 줄이기 위해 조정한다.
