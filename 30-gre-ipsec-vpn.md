@@ -347,3 +347,138 @@ Original Packet
 
 ---
 
+## 예시 및 구성
+
+### 본사와 지사 GRE over IPsec 연결
+
+`MASON` 회사는 본사와 지사 사이의 Network를 ISP를 통해 연결하려고 한다.
+
+관리자는 GRE Tunnel을 사용하여 두 Router 사이에 가상의 Point-to-Point Link를 생성하고, GRE Traffic을 IPsec으로 암호화한다.
+
+![](images/30-gre-ipsec-eg.png)
+
+### Underlay Route 구성
+
+R1에서 R2의 Tunnel Destination으로 가는 Route를 설정한다.
+```
+R1(config)# ip route 198.51.100.2 255.255.255.255 203.0.113.1
+```
+
+R2에서 R1의 Tunnel Destination으로 가는 Route를 설정한다.
+```
+R2(config)# ip route 203.0.113.2 255.255.255.255 198.51.100.1
+```
+
+해당 Route는 Tunnel Destination이 다시 `Tunnel0`을 사용하는 Recursive Routing을 방지한다.
+
+### R1 GRE Tunnel 구성
+
+```
+R1(config)# interface tunnel 0
+R1(config-if)# ip address 10.0.0.1 255.255.255.252
+R1(config-if)# tunnel source gi0/1
+R1(config-if)# tunnel destination 198.51.100.2
+R1(config-if)# keepalive 10 3
+R1(config-if)# ip mtu 1400
+R1(config-if)# ip tcp adjust-mss 1360
+R1(config-if)# no shutdown
+```
+
+지사 Network로 향하는 Route를 설정한다.
+```
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.0.2
+```
+
+### R2 GRE Tunnel 구성
+```
+R2(config)# interface tunnel 0
+R2(config-if)# ip address 10.0.0.2 255.255.255.252
+R2(config-if)# tunnel source gi0/1
+R2(config-if)# tunnel destination 203.0.113.2
+R2(config-if)# keepalive 10 3
+R2(config-if)# ip mtu 1400
+R2(config-if)# ip tcp adjust-mss 1360
+R2(config-if)# no shutdown
+```
+
+본사 Network로 향하는 Route를 설정한다.
+```
+R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.0.1
+```
+
+### R1 IKE Phase 1 구성
+```
+R1(config)# crypto isakmp policy 10
+R1(config-isakmp)# encryption aes 256
+R1(config-isakmp)# hash sha256
+R1(config-isakmp)# authentication pre-share
+R1(config-isakmp)# group 14
+R1(config-isakmp)# lifetime 86400
+R1(config-isakmp)# exit
+
+R1(config)# crypto isakmp key MASON-VPN-KEY address 198.51.100.2
+```
+
+### R2 IKE Phase 1 구성
+
+```
+R2(config)# crypto isakmp policy 10
+R2(config-isakmp)# encryption aes 256
+R2(config-isakmp)# hash sha256
+R2(config-isakmp)# authentication pre-share
+R2(config-isakmp)# group 14
+R2(config-isakmp)# lifetime 86400
+R2(config-isakmp)# exit
+
+R2(config)# crypto isakmp key MASON-VPN-KEY address 203.0.113.2
+```
+
+### R1 IPsec Phase 2 구성
+
+GRE Traffic을 선택하는 Crypto ACL을 생성한다.
+```
+R1(config)# access-list 110 permit gre host 203.0.113.2 host 198.51.100.2
+```
+
+Transform Set과 Crypto Map을 설정한다.
+```
+R1(config)# crypto ipsec transform-set GRE-SET esp-aes 256 esp-sha256-hmac
+R1(cfg-crypto-trans)# mode transport
+R1(cfg-crypto-trans)# exit
+
+R1(config)# crypto map GRE-MAP 10 ipsec-isakmp
+R1(config-crypto-map)# set peer 198.51.100.2
+R1(config-crypto-map)# set transform-set GRE-SET
+R1(config-crypto-map)# set pfs group14
+R1(config-crypto-map)# match address 110
+```
+
+Public Interface에 Crypto Map을 적용한다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# crypto map GRE-MAP
+```
+
+### R2 IPsec Phase 2 구성
+
+R2의 Crypto ACL은 R1과 Source 및 Destination이 반대 방향이어야 한다.
+```
+R2(config)# access-list 110 permit gre host 198.51.100.2 host 203.0.113.2
+```
+
+```
+R2(config)# crypto ipsec transform-set GRE-SET esp-aes 256 esp-sha256-hmac
+R2(cfg-crypto-trans)# mode transport
+R2(cfg-crypto-trans)# exit
+
+R2(config)# crypto map GRE-MAP 10 ipsec-isakmp
+R2(config-crypto-map)# set peer 203.0.113.2
+R2(config-crypto-map)# set transform-set GRE-SET
+R2(config-crypto-map)# set pfs group14
+R2(config-crypto-map)# match address 110
+```
+
+```
+R2(config)# interface gi0/1
+R2(config-if)# crypto map GRE-MAP
+```
