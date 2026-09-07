@@ -383,3 +383,52 @@ MQC는 다음 세 단계로 구성한다.
 3\. `service-policy`로 Policy를 Interface에 적용한다.
 
 ---
+
+## 동작 원리
+
+### QoS 동작 과정
+
+1\. Client와 IP Phone의 Traffic이 Router로 전달된다.
+
+2\. Router는 Interface, MAC Address, VLAN, IP Address, Port Number, Application 또는 기존 DSCP 값을 확인하여 Traffic을 분류한다.
+
+3\. 분류한 Traffic에 DSCP 값을 설정하거나 기존 DSCP 값을 유지한다.
+```
+Voice → EF
+업무 Traffic → AF31
+일반 Traffic → CS0
+```
+
+4\. Router는 Traffic을 Class별 Output Queue에 저장한다.
+
+5\. WAN Interface에 혼잡이 발생하면 LLQ가 Voice Traffic을 먼저 전송한다.
+
+6\. CBWFQ는 업무 Traffic에 설정된 최소 Bandwidth를 제공한다.
+
+7\. 일반 Traffic은 남은 Bandwidth를 사용한다.
+
+8\. Queue가 가득 차기 전에 WRED가 일부 TCP Packet을 미리 Drop할 수 있다.
+
+9\. Queue가 완전히 가득 차면 Tail Drop이 발생한다.
+
+### Policing 동작 과정
+
+1\. Router는 Traffic의 전송 속도를 측정한다.
+
+2\. Traffic이 설정된 속도 이하이면 정상적으로 전송한다.
+
+3\. 설정된 속도를 초과하면 초과 Packet을 Drop하거나 DSCP 값을 낮춘다.
+
+4\. 초과 Packet을 Queue에 저장하지 않으므로 Traffic 속도를 즉시 제한한다.
+
+### Shaping 동작 과정
+
+1\. Router는 Outbound Traffic의 전송 속도를 측정한다.
+
+2\. Traffic이 설정된 속도 이하이면 바로 전송한다.
+
+3\. 설정된 속도를 초과하면 Packet을 Shaping Queue에 저장한다.
+
+4\. Router는 저장한 Packet을 설정된 속도에 맞춰 나중에 전송한다.
+
+---
