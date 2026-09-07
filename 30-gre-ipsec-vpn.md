@@ -291,3 +291,59 @@ Original Packet
 → Internet 전송
 ```
 
+---
+
+## 동작 원리
+
+### GRE Tunnel 동작 과정
+
+1\. R1은 Routing Table을 확인하고 지사 Network로 가는 Packet을 `Tunnel0`으로 전달한다.
+
+2\. R1은 원본 Packet에 GRE Header와 새로운 IP Header를 추가한다.
+
+3\. 새로운 IP Header에는 R1과 R2의 Public IP Address가 사용된다.
+
+4\. Underlay Network는 새로운 IP Header를 확인하여 GRE Packet을 R2로 전달한다.
+
+5\. R2는 GRE Header를 제거하여 원본 Packet을 확인한다.
+
+6\. R2는 원본 Packet을 지사 내부 Network로 전달한다.
+
+### Site-to-Site IPsec 동작 과정
+
+1\. 본사 사용자가 지사 Network로 Packet을 전송한다.
+
+2\. R1은 Crypto ACL을 확인하여 해당 Packet이 Interesting Traffic인지 확인한다.
+
+3\. IKE SA가 없다면 R1과 R2가 IKE Negotiation을 시작한다.
+
+4\. IKEv1 Phase 1에서 VPN Peer를 인증하고 IKE SA를 생성한다.
+
+5\. IKEv1 Phase 2에서 Transform Set과 Crypto ACL을 협상하고 IPsec SA를 생성한다.
+
+6\. R1은 Packet을 ESP로 암호화하여 Internet으로 전송한다.
+
+7\. R2는 Packet을 Decryption하고 원본 Packet을 지사 Network로 전달한다.
+
+### GRE over IPsec 동작 과정
+
+1\. 본사 PC가 지사 Network로 Packet을 전송한다.
+
+2\. R1은 Packet을 `Tunnel0`으로 전달한다.
+
+3\. 원본 Packet에 GRE Header와 새로운 IP Header를 추가한다.
+
+4\. Crypto ACL이 R1과 R2 사이의 GRE Traffic을 선택한다.
+
+5\. IPsec SA가 없다면 IKE Negotiation을 진행한다.
+
+6\. IKE SA와 IPsec SA가 생성되면 GRE Packet을 ESP로 암호화한다.
+
+7\. 암호화된 Packet을 Underlay Network인 Internet을 통해 R2로 전송한다.
+
+8\. R2는 IPsec을 Decryption하고 GRE Header를 제거한다.
+
+9\. R2는 원본 Packet을 지사 내부 Network로 전달한다.
+
+---
+
