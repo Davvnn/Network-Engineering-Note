@@ -1,4 +1,4 @@
-# QoS Fundamental
+# QoS Fundamentals
 
 ## 개념
 
