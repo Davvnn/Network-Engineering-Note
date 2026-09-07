@@ -137,3 +137,157 @@ Tunnel Mode는 원본 IP Packet 전체를 보호하고 새로운 Outer IP Header
 ISP Router는 새로운 Outer IP Header의 Destination IP Address를 확인하여 상대방 VPN 장비까지 Packet을 Forwarding한다. 원본 IP Address, TCP/UDP Header 및 Data는 ESP로 암호화되어 있기 때문에 확인할 수 없다.
 
 일반적인 Site-to-Site IPsec VPN에서는 서로 다른 Network의 원본 IP Packet 전체를 보호하기 위해 주로 Tunnel Mode를 사용한다.
+
+### IKE
+
+IKE(Internet Key Exchange)는 본사와 지사의 Router 또는 Firewall 같은 두 VPN Peer가 서로를 인증하고, IPsec에서 사용할 암호화 방식과 Key를 협상하는 Protocol이다.
+
+IKE가 실제 Data Traffic을 직접 암호화하는 것은 아니다. IKE는 안전한 통신에 필요한 SA와 Key를 생성하고 이후 ESP가 실제 Data Traffic을 보호한다.
+- SA(Security Association): VPN Peer 사이에서 사용할 암호화 방식, Key 및 Lifetime 등을 정한 정보이다.
+
+IKE는 IPsec VPN을 구성하기 위해 VPN Peer를 인증하고 암호화 방식과 Key를 협상하는 Protocol이다. 실제 Data Traffic은 IKE가 생성한 IPsec SA를 사용하여 ESP가 암호화하고 보호한다.
+
+IKE
+- 어떤 암호화 방식을 사용할지 협상
+- VPN Peer를 인증
+- 암호화에 사용할 Key와 SA를 생성
+- IKE 협상 Message를 보호
+```
+Encryption: AES-256
+Integrity: SHA-256
+DH Group: 14
+Authentication: Pre-Shared Key
+```
+
+ESP
+- IKE가 협상한 암호화 방식과 Key를 사용
+- 실제 사용자의 Data Packet을 암호화
+
+### IKEv1
+
+IKEv1은 Phase 1과 Phase 2 두 단계로 동작한다.
+
+1\. Phase 1에서는 VPN Peer가 서로를 인증하고 IKE SA를 생성한다.
+
+Phase 1에서는 다음 정보를 협상한다.
+- Encryption: IKE Message를 암호화할 방식을 결정한다.
+- Hash: IKE Message가 변경되었는지 확인할 방식을 결정한다.
+- Authentication: PSK 또는 Certificate를 사용하여 VPN Peer를 인증한다.
+- DH Group: VPN Peer가 안전하게 Key를 생성할 방식을 결정한다.
+- Lifetime: IKE SA를 유지할 시간을 결정한다.
+
+2\. Phase 2에서는 실제 Data Traffic을 보호하는 IPsec SA를 생성한다.
+
+Phase 2에서는 Phase 1에서 생성한 안전한 연결을 통해 다음 정보를 협상한다.
+- Crypto ACL: IPsec으로 보호할 Traffic을 결정한다.
+- Transform Set: ESP에서 사용할 암호화 및 무결성 확인 방식을 결정한다.
+- PFS: 새로운 DH Key를 생성하여 기존 Key와 독립된 Key를 사용한다.
+- Lifetime: IPsec SA를 유지할 시간을 결정한다.
+
+### IKEv2
+
+IKEv2는 IKEv1보다 적은 메시지를 사용하여 SA를 생성하며 안정성과 보안 기능이 향상된 Version이다.
+
+IKEv1의 Phase 1과 Phase 2 구조를 그대로 사용하지 않으며 IKEv1과 호환되지 않는다.
+
+따라서 양쪽 VPN Peer는 같은 IKE Version을 사용해야 한다.
+
+최신 환경에서는 일반적으로 IKEv2 사용을 권장한다.
+
+### Pre-Shared Key
+
+Pre-Shared Key는 양쪽 VPN 장비에 동일하게 설정하여 VPN Peer를 인증하는 Password이다.
+
+### Certificate
+
+Certificate는 CA(Certificate Authority)가 발급한 인증서를 사용하여 VPN Peer를 인증하는 방식이다.
+
+### PFS
+
+PFS(Perfect Forward Secrecy)는 IKE Phase 2에서 새로운 DH Key를 생성하는 기능이다.
+
+PFS는 IPsec SA마다 서로 다른 Key를 생성하여 하나의 Key가 노출되어도 다른 IPsec SA의 암호화된 Traffic을 확인하지 못하도록 한다.
+
+### Transform Set
+
+Transform Set은 IPsec에서 사용할 Protocol, 암호화 방식, 무결성 방식 및 Mode를 지정한다.
+```
+R1(config)# crypto ipsec transform-set GRE-SET esp-aes 256 esp-sha256-hmac
+R1(cfg-crypto-trans)# mode transport
+```
+양쪽 VPN Peer의 Transform Set은 서로 호환되어야 한다.
+
+### Crypto ACL
+
+Crypto ACL은 IPsec으로 보호할 Traffic을 선택한다.
+
+Crypto ACL에서 선택된 Traffic을 Interesting Traffic이라고 한다.
+
+일반적인 Site-to-Site IPsec VPN에서는 내부 Data Traffic을 보호한다.
+```
+R1(config)# access-list 110 permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+```
+
+GRE over IPsec에서는 원본 Data Traffic을 GRE로 Encapsulation한 후, 두 VPN Peer의 Public IP Address 사이에서 전달되는 GRE Traffic을 IPsec으로 보호한다.  
+```
+R1(config)# access-list 110 permit gre host 203.0.113.2 host 198.51.100.2
+```
+
+### Policy-Based VPN
+
+Policy-Based VPN은 Crypto ACL로 IPsec으로 보호할 Traffic을 선택하고 Crypto Map을 WAN Interface에 적용하는 방식이다.
+
+내부 Network가 추가되면 Crypto ACL과 상대방 VPN 설정도 함께 수정해야 한다.
+
+### Route-Based VPN
+
+Route-Based VPN은 VTI(Virtual Tunnel Interface)와 같은 Tunnel Interface를 생성하고 Routing Table을 이용하여 VPN으로 보낼 Traffic을 결정한다.
+```
+Policy-Based VPN: Crypto ACL로 VPN Traffic 선택
+Route-Based VPN: Routing Table로 Tunnel Interface 선택
+```
+
+### NAT-T
+
+NAT-T(NAT Traversal)는 두 VPN Peer 사이에 NAT 장비가 있을 때 ESP Packet을 UDP로 Encapsulation하여 전달하는 기능이다.
+
+IKE는 UDP Port `500`으로 통신을 시작하고, 중간에 NAT 장비가 확인되면 일반적으로 UDP Port `4500`을 사용한다.
+```
+일반 IPsec
+IP Header | ESP | 암호화된 Packet
+
+NAT-T
+IP Header | UDP 4500 | ESP | 암호화된 Packet
+```
+NAT-T는 ESP Packet을 UDP Port `4500`으로 Encapsulation하여 VPN Peer 사이에 NAT 장비가 있어도 IPsec Traffic을 정상적으로 구분하고 전달할 수 있게 해준다.
+
+### NAT Exemption
+
+NAT Exemption은 VPN으로 전달할 내부 Traffic이 일반 NAT/PAT로 변환되지 않도록 제외하는 설정이다.
+
+예를 들어 Crypto ACL이 다음 Traffic을 선택한다고 가정한다.
+```
+192.168.10.0/24 → 192.168.20.0/24
+```
+PAT로 Source IP Address가 Public IP Address로 변경되면 Crypto ACL 또는 상대방 VPN 설정과 일치하지 않을 수 있다.
+
+따라서 일반적인 Policy-Based Site-to-Site VPN에서는 내부 VPN Traffic을 NAT/PAT 대상에서 제외해야 한다.
+```
+NAT-T: VPN Peer 사이의 NAT 장비를 통과하기 위해 사용한다.
+NAT Exemption: 내부 VPN Traffic이 NAT되지 않도록 제외한다.
+```
+
+### GRE over IPsec
+
+GRE over IPsec은 GRE의 Tunneling 기능과 IPsec의 보안 기능을 함께 사용하는 방식이다.
+- GRE는 가상의 Tunnel Interface를 생성하고 Multicast와 Routing Protocol Traffic을 전달한다.
+- IPsec은 GRE Packet을 암호화하고 인증한다.
+
+Packet은 다음 순서로 처리된다.
+```
+Original Packet
+→ GRE Encapsulation
+→ IPsec Encryption
+→ Internet 전송
+```
+
