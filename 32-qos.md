@@ -432,3 +432,210 @@ Voice → EF
 4\. Router는 저장한 Packet을 설정된 속도에 맞춰 나중에 전송한다.
 
 ---
+
+## 예시 및 구성
+
+### 사내 Voice와 업무 Traffic QoS 적용
+
+`MASON` 회사는 본사 Router를 통해 `100 Mbps`의 WAN 회선을 사용하고 있다.
+
+내부 Interface는 `1 Gbps`이지만 ISP와 계약한 실제 WAN Bandwidth는 `100 Mbps`이다.
+
+파일 전송 Traffic이 증가하면 WAN Interface에 혼잡이 발생하여 Voice Traffic의 Delay와 Jitter가 증가한다.
+
+관리자는 Voice Traffic을 `EF`, 중요 업무 Traffic을 `AF31`로 Marking하고 다음 QoS Policy를 적용한다.
+```
+Voice Traffic: Priority Bandwidth 20%
+업무 Traffic: Minimum Bandwidth 30%
+일반 Traffic: 남은 Bandwidth 사용
+전체 Traffic: 100 Mbps로 Shaping
+```
+
+![](images/32-qos-eg.png)
+
+### Traffic Marking 구성
+
+Voice와 업무 Traffic을 분류하는 ACL을 생성한다.
+```
+R1(config)# ip access-list extended VOICE-ACL
+R1(config-ext-nacl)# permit ip 192.168.10.0 0.0.0.255 any
+R1(config-ext-nacl)# exit
+
+R1(config)# ip access-list extended BUSINESS-ACL
+R1(config-ext-nacl)# permit ip 192.168.20.0 0.0.0.255 any
+R1(config-ext-nacl)# exit
+```
+
+ACL을 사용하는 Class Map을 생성한다.
+```
+R1(config)# class-map match-any VOICE-SOURCE
+R1(config-cmap)# match access-group name VOICE-ACL
+R1(config-cmap)# exit
+
+R1(config)# class-map match-any BUSINESS-SOURCE
+R1(config-cmap)# match access-group name BUSINESS-ACL
+R1(config-cmap)# exit
+```
+
+Traffic에 DSCP 값을 설정한다.
+```
+R1(config)# policy-map LAN-MARKING
+R1(config-pmap)# class VOICE-SOURCE
+R1(config-pmap-c)# set dscp ef
+R1(config-pmap-c)# exit
+R1(config-pmap)# class BUSINESS-SOURCE
+R1(config-pmap-c)# set dscp af31
+R1(config-pmap-c)# exit
+```
+
+LAN Interface의 Inbound 방향에 Marking Policy를 적용한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# service-policy input LAN-MARKING
+```
+
+### WAN Queuing 구성
+
+DSCP 값을 기준으로 Traffic을 분류한다.
+```
+R1(config)# class-map match-any VOICE
+R1(config-cmap)# match dscp ef
+R1(config-cmap)# exit
+
+R1(config)# class-map match-any BUSINESS
+R1(config-cmap)# match dscp af31
+R1(config-cmap)# exit
+```
+
+Voice와 업무 Traffic의 Queue를 설정한다.
+```
+R1(config)# policy-map WAN-CHILD
+R1(config-pmap)# class VOICE
+R1(config-pmap-c)# priority percent 20
+R1(config-pmap-c)# exit
+R1(config-pmap)# class BUSINESS
+R1(config-pmap-c)# bandwidth percent 30
+R1(config-pmap-c)# exit
+R1(config-pmap)# class class-default
+R1(config-pmap-c)# fair-queue
+```
+- `priority percent 20`: Voice Traffic을 Priority Queue에 저장하고 혼잡 시 먼저 전송한다.
+- `bandwidth percent 30`: 혼잡 시 업무 Traffic에 최소 `30%`의 Bandwidth를 제공한다.
+- `class-default`: 다른 Class에 포함되지 않은 Traffic을 처리한다.
+- `fair-queue`: 일반 Traffic을 Flow별로 구분하여 공정하게 처리한다.
+
+### WAN Shaping 구성
+
+전체 Outbound Traffic을 ISP의 실제 계약 속도인 `100 Mbps`로 조정한다.
+```
+R1(config)# policy-map WAN-PARENT
+R1(config-pmap)# class class-default
+R1(config-pmap-c)# shape average 100000000
+R1(config-pmap-c)# service-policy WAN-CHILD
+```
+- `shape average 100000000`: 전체 Traffic을 평균 `100 Mbps`로 조정한다.
+- `service-policy WAN-CHILD`: Shaping된 Traffic 안에서 Voice와 업무 Traffic의 Queue를 구분한다.
+
+WAN Interface의 Outbound 방향에 Parent Policy를 적용한다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# service-policy output WAN-PARENT
+```
+
+---
+
+## 확인 명령어
+
+Class Map을 확인한다.
+```
+R1# show class-map
+```
+
+Policy Map을 확인한다.
+```
+R1# show policy-map
+```
+
+Interface에 적용된 QoS Policy와 Counter를 확인한다.
+```
+R1# show policy-map interface gi0/0
+R1# show policy-map interface gi0/1
+```
+다음 정보를 확인한다.
+- Class별 Packet Counter
+- DSCP Marking Counter
+- Queue에 저장된 Packet
+- Drop된 Packet
+- Policing 및 Shaping Rate
+
+ACL Counter를 확인한다.
+```
+R1# show access-lists VOICE-ACL
+R1# show access-lists BUSINESS-ACL
+```
+
+---
+
+## Troubleshooting
+
+### QoS가 정상적으로 동작하지 않는 경우
+
+1\. QoS Policy가 올바른 Interface와 방향에 적용되어 있는지 확인한다.
+```
+R1# show running-config interface gi0/0
+R1# show running-config interface gi0/1
+```
+
+2\. Class Map의 Packet Counter가 증가하는지 확인한다.
+```
+R1# show policy-map interface
+```
+- Counter가 증가하지 않으면 ACL, DSCP, Port Number 또는 Class Map의 Match 조건을 확인한다.
+
+3\. Packet에 DSCP 값이 정상적으로 Marking되어 있는지 확인한다.
+
+4\. QoS를 적용한 Interface가 실제 Congestion 구간인지 확인한다.
+- 혼잡이 없다면 모든 Traffic을 바로 전송할 수 있으므로 QoS 효과가 크게 나타나지 않을 수 있다.
+
+5\. 물리적인 Interface 속도와 ISP의 CIR이 다른지 확인한다.
+- 물리 Interface는 `1 Gbps`이지만 CIR이 `100 Mbps`라면 `100 Mbps`에 맞게 Shaping해야 할 수 있다.
+
+6\. Priority Queue에 너무 많은 Traffic이 포함되어 있는지 확인한다.
+- Voice가 아닌 Traffic까지 `EF`로 분류하면 다른 Traffic의 품질이 낮아질 수 있다.
+
+---
+
+## 주요 질문
+
+QoS란 무엇인가?
+- Network에 Congestion이 발생했을 때 중요한 Traffic을 먼저 처리하고 Traffic 종류에 따라 Bandwidth와 Packet Drop을 관리하는 기술이다.
+
+QoS는 언제 효과가 발생하는가?
+- 주로 Output Interface에 Congestion이 발생하여 Packet이 Queue에서 대기할 때 효과가 나타난다.
+
+Jitter란 무엇인가?
+- Packet마다 전달 시간이 달라져 일정한 간격으로 도착하지 않는 현상이다.
+
+De-jitter Buffer란 무엇인가?
+- Voice Packet을 잠시 저장한 후 일정한 간격으로 재생하여 Jitter의 영향을 줄이는 Buffer이다.
+
+Classification과 Marking의 차이는 무엇인가?
+- Classification은 Traffic을 종류별로 분류하고, Marking은 분류한 Traffic에 DSCP나 CoS 값을 설정한다.
+
+NBAR란 무엇인가?
+- Port Number뿐만 아니라 Application의 특징이나 Signature를 확인하여 Traffic을 분류하는 Cisco 기능이다.
+
+CoS와 DSCP의 차이는 무엇인가?
+- CoS는 Layer 2의 802.1Q VLAN Tag에서 사용하고, DSCP는 Layer 3의 IP Header에서 사용한다.
+
+IP Precedence와 DSCP의 차이는 무엇인가?
+- IP Precedence는 `3 Bit`로 8개의 값을 사용하고, DSCP는 `6 Bit`로 64개의 값을 사용한다.
+
+AF에서 Drop Precedence는 무엇인가?
+- 같은 AF Class에서 Congestion발생 시 어떤 Traffic을 먼저 Drop할지 나타내며 값이 높을수록 먼저 Drop될 가능성이 높다.
+
+Policing과 Shaping의 차이는 무엇인가?
+- Policing은 설정 속도를 초과한 Packet을 Drop하거나 Re-marking하고, Shaping은 초과 Packet을 Queue에 저장한 후 나중에 전송한다.
+
+Internet에서도 DSCP 값이 계속 유지되는가?
+- ISP나 중간 Network의 Policy에 따라 DSCP 값이 변경되거나 무시될 수 있다.
