@@ -268,7 +268,6 @@ R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
 ```
 - Server는 `239.1.1.1`을 Destination으로 Multicast Traffic을 전송하고 Receiver는 Application을 통해 해당 Group에 가입한다.
 
-
 ---
 
 ## 명령어
