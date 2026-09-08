@@ -193,3 +193,250 @@ Packet이 해당 경로의 Interface로 들어오면 전달하고, 다른 Interf
 
 ---
 
+## 예시 및 구성
+
+### 사내 Multicast 방송 구성
+
+`MASON` 회사는 본사의 방송 Server가 전송하는 Multicast Traffic을 다른 Network의 Client가 수신하도록 구성하려고 한다.
+
+![](images/33-multicast-eg.png)
+
+R1은 Source와 연결된 First-Hop Router이며 RP 역할도 수행한다.
+
+R2는 Receiver와 연결된 Last-Hop Router이다.
+
+### R1 구성
+
+Multicast Routing을 활성화한다.
+```
+R1(config)# ip multicast-routing
+```
+
+RP로 사용할 Loopback Interface를 생성한다.
+```
+R1(config)# interface loopback 0
+R1(config-if)# ip address 1.1.1.1 255.255.255.255
+R1(config-if)# ip pim sparse-mode
+```
+
+Source와 Transit Interface에서 PIM Sparse Mode를 활성화한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# ip address 192.168.10.1 255.255.255.0
+R1(config-if)# ip pim sparse-mode
+R1(config-if)# no shutdown
+
+R1(config)# interface gi0/1
+R1(config-if)# ip address 10.0.12.1 255.255.255.252
+R1(config-if)# ip pim sparse-mode
+R1(config-if)# no shutdown
+```
+
+Static RP와 Receiver Network Route를 설정한다.
+```
+R1(config)# ip pim rp-address 1.1.1.1
+R1(config)# ip route 192.168.20.0 255.255.255.0 10.0.12.2
+```
+
+### R2 구성
+
+Multicast Routing을 활성화한다.
+```
+R2(config)# ip multicast-routing
+```
+
+R1과 Receiver 방향의 Interface에서 PIM Sparse Mode를 활성화한다.
+```
+R2(config)# interface gi0/1
+R2(config-if)# ip address 10.0.12.2 255.255.255.252
+R2(config-if)# ip pim sparse-mode
+R2(config-if)# no shutdown
+
+R2(config)# interface gi0/0
+R2(config-if)# ip address 192.168.20.1 255.255.255.0
+R2(config-if)# ip pim sparse-mode
+R2(config-if)# ip igmp version 2
+R2(config-if)# no shutdown
+```
+
+Static RP와 Source Network Route를 설정한다.
+
+```
+R2(config)# ip pim rp-address 1.1.1.1
+R2(config)# ip route 1.1.1.1 255.255.255.255 10.0.12.1
+R2(config)# ip route 192.168.10.0 255.255.255.0 10.0.12.1
+```
+- Server는 `239.1.1.1`을 Destination으로 Multicast Traffic을 전송하고 Receiver는 Application을 통해 해당 Group에 가입한다.
+
+
+---
+
+## 명령어
+
+### SSM 설정
+
+기본 SSM Address 범위인 `232.0.0.0/8`을 모든 Multicast Router에서 활성화한다.
+```
+R1(config)# ip pim ssm default
+R2(config)# ip pim ssm default
+```
+
+Receiver 방향 Interface에서 IGMPv3를 사용한다.
+```
+R2(config)# interface gi0/0
+R2(config-if)# ip igmp version 3
+```
+
+### IGMP Snooping 설정
+
+L2 Switch에서 IGMP Snooping을 Global로 활성화한다.
+```
+SW1(config)# ip igmp snooping
+```
+
+VLAN `20`에서 IGMP Snooping을 활성화한다.
+```
+SW1(config)# ip igmp snooping vlan 20
+```
+- IGMP Snooping을 사용하면 VLAN `20`의 모든 Port가 아니라 Multicast Group에 가입한 Receiver Port와 Mrouter Port에만 Traffic을 전달한다.
+
+
+Multicast Routing과 PIM이 활성화된 Interface를 확인한다.
+```
+R1# show ip pim interface
+```
+
+PIM Neighbor가 정상적으로 형성되었는지 확인한다.
+```
+R1# show ip pim neighbor
+```
+
+PIM Sparse Mode에서 사용하는 RP를 확인한다.
+```
+R1# show ip pim rp mapping
+```
+
+Receiver가 가입한 Multicast Group을 확인한다.
+```
+R2# show ip igmp groups
+R2# show ip igmp interface gi0/0
+```
+
+Multicast Routing Table의 `(*,G)`와 `(S,G)` Entry를 확인한다.
+```
+R1# show ip mroute
+R2# show ip mroute 239.1.1.1
+```
+
+Multicast Source에 대한 RPF Interface를 확인한다.
+```
+R2# show ip rpf 192.168.10.10
+```
+
+L2 Switch에서 IGMP Snooping으로 학습한 Group과 Receiver Port를 확인한다.
+```
+SW1# show ip igmp snooping
+SW1# show ip igmp snooping groups
+SW1# show ip igmp snooping mrouter
+```
+
+---
+
+## Troubleshooting
+
+### Multicast Traffic을 수신할 수 없는 경우
+
+1\. Multicast Routing이 활성화되어 있는지 확인한다.
+
+```
+R1# show running-config | include ip multicast-routing
+```
+
+2\. Source, Transit 및 Receiver 방향의 L3 Interface에 PIM이 설정되어 있는지 확인한다.
+
+```
+R1# show ip pim interface
+R2# show ip pim interface
+```
+
+3\. Router 사이에 PIM Neighbor가 정상적으로 형성되었는지 확인한다.
+
+```
+R1# show ip pim neighbor
+R2# show ip pim neighbor
+```
+- PIM Neighbor가 없으면 Interface 상태, IP Address, Subnet 및 PIM 설정을 확인한다.
+
+4\. Receiver가 실제로 Multicast Group에 가입했는지 확인한다.
+
+```
+R2# show ip igmp groups
+```
+- Group이 보이지 않으면 Receiver Application, IGMP Version 및 Receiver와 Router 사이의 연결을 확인한다.
+
+5\. PIM Sparse Mode에서 모든 Router가 동일한 RP를 알고 있는지 확인한다.
+
+```
+R1# show ip pim rp mapping
+R2# show ip pim rp mapping
+R2# show ip route 1.1.1.1
+```
+
+6\. Multicast Source 방향의 RPF가 정상인지 확인한다.
+
+```
+R2# show ip route 192.168.10.10
+R2# show ip rpf 192.168.10.10
+```
+- RPF Interface와 실제 Multicast Packet이 들어오는 Interface가 다르면 Packet이 Drop된다.
+
+7\. Multicast Routing Table을 확인한다.
+
+```
+R1# show ip mroute 239.1.1.1
+R2# show ip mroute 239.1.1.1
+```
+- Incoming Interface: Multicast Packet이 들어오는 Interface
+- Outgoing Interface List: Receiver 방향으로 Packet을 전달하는 Interface
+- `(*,G)`: RP를 사용하는 Shared Tree
+- `(S,G)`: Source를 사용하는 Source Tree
+
+8\. Source가 실제 Multicast Traffic을 전송하고 있는지 확인하고 Source Application의 TTL이 너무 낮지 않은지 확인한다.
+
+9\. ACL이나 Firewall에서 다음 Traffic을 차단하고 있지 않은지 확인한다.
+- IGMP: IP Protocol Number `2`
+- PIM: IP Protocol Number `103`
+- 실제 Multicast Group으로 전송되는 Data Traffic
+
+10\. SSM을 사용한다면 SSM과 IGMPv3 설정을 확인한다.
+
+```
+R1# show running-config | include ip pim ssm
+R2# show ip igmp interface gi0/0
+R2# show ip mroute 232.1.1.1
+```
+- 모든 Multicast Router에서 SSM이 활성화되어 있는지 확인한다.
+- Receiver 방향 Interface가 IGMPv3를 사용하는지 확인한다.
+- Multicast Routing Table에 `(S,G)` Entry가 생성되는지 확인한다.
+
+---
+
+## 주요 질문
+
+Multicast란 무엇인가?
+- 하나의 Source가 같은 Data를 특정 Multicast Group에 가입한 여러 Receiver에게 전달하는 방식이다.
+
+IGMP와 PIM의 차이는 무엇인가?
+- IGMP는 Receiver가 Router에 Multicast Group 가입 정보를 전달하고, PIM은 Router 사이에서 Multicast 전달 경로를 생성한다.
+
+IGMP Snooping을 사용하는 이유는 무엇인가?
+- L2 Switch가 Multicast Group에 가입한 Receiver Port를 학습하고 해당 Port에만 Traffic을 전달하기 위해 사용한다.
+
+PIM Sparse Mode에서 RP를 사용하는 이유는 무엇인가?
+- Multicast Source와 Receiver가 처음 서로를 찾고 Shared Tree를 생성할 수 있도록 사용한다.
+
+PIM Register는 어떤 역할을 하는가?
+- First-Hop Router가 최초 Multicast Packet을 Encapsulation하여 RP에 전달하고 새로운 Source가 있다는 것을 알린다.
+
+SPT Cutover란 무엇인가?
+- Last-Hop Router가 RP를 사용하는 Shared Tree에서 Source까지의 최단 경로인 SPT로 Multicast 전달 경로를 전환하는 것이다.
