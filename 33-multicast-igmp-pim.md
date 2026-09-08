@@ -139,13 +139,13 @@ Multicast Routing Table에서는 `(S,G)`로 표시한다.
 
 ### SPT Cutover
 
-Last-Hop Router가 Shared Tree를 통해 최초 Multicast Traffic을 수신하면 Source IP Address를 확인한다.
+Last-Hop Router는 처음에 RP를 기준으로 생성된 Shared Tree를 통해 Multicast Traffic을 수신한다.
 
-Last-Hop Router는 Source 방향으로 PIM `(S,G)` Join Message를 전송하여 SPT를 생성한다.
+Last-Hop Router는 Packet의 Source IP Address를 확인한 후 Source 방향으로 PIM `(S,G)` Join Message를 전송하여 더 짧은 SPT를 생성한다.
 
-SPT를 통해 Multicast Traffic을 수신하기 시작하면 해당 Source Traffic에 대한 RP 방향의 기존 경로를 Prune한다.
+SPT를 통해 Traffic을 수신하기 시작하면 기존 RP 방향의 경로를 Prune하여 더 이상 사용하지 않는다.
 
-이후 Multicast Traffic은 RP를 거치지 않고 Source에서 Receiver까지 최단 경로로 전달된다.
+처음에는 RP 방향의 Shared Tree를 통해 Multicast Traffic을 수신하지만, 이후에는 Source에서 Receiver까지 더 효율적인 경로인 SPT를 사용한다.
 ```
 Shared Tree: Source → RP → Receiver
 SPT: Source → Receiver 최단 경로
