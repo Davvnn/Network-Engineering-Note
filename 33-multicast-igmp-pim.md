@@ -68,3 +68,97 @@ IGMP Snooping이 없으면 Switch는 Multicast Group에 가입한 Receiver의 �
 IGMP Snooping을 사용하면 Multicast Traffic을 다음 Port에만 전달한다.
 - 해당 Multicast Group에 가입한 Receiver Port
 - Multicast Router가 연결된 Mrouter Port
+
+### PIM
+
+PIM(Protocol Independent Multicast)은 Router 사이에서 Multicast 전달 경로를 생성하는 Multicast Routing Protocol이다.
+
+PIM은 Static Route, OSPF 및 EIGRP 등으로 생성된 Routing Table을 확인하여 Multicast Traffic이 Source 방향에서 정상적으로 들어왔는지 확인한다.
+
+PIM은 특정 Routing Protocol만 사용하는 것이 아니라 Static Route, OSPF 및 EIGRP 등으로 생성된 Routing Table을 모두 사용할 수 있기 때문에 Protocol Independent라고 한다.
+- PIM은 IP Protocol Number `103`을 사용한다.
+- PIM Router는 `224.0.0.13`으로 PIM Message를 전송한다.
+
+### PIM Dense Mode
+
+PIM-DM(Dense Mode)은 Network의 여러 곳에 Receiver가 존재한다고 가정한다.
+
+처음에는 Multicast Traffic을 모든 PIM Interface로 Flooding하고, Receiver가 없는 경로에 Prune Message를 전송하여 Traffic을 차단한다.
+- Prune은 Multicast Traffic을 받을 Receiver가 없는 경로로 Traffic이 전달되지 않도록 차단하는 기능이다.
+
+### PIM Sparse Mode
+
+PIM-SM(Sparse Mode)은 Receiver가 Multicast Group에 가입하면, Receiver와 연결된 Router가 PIM Join Message를 전송하여 요청한 경로로만 Multicast Traffic이 전달되도록 한다.
+
+PIM-SM에서는 Source의 Multicast Traffic과 Receiver의 가입 요청이 만나는 지점으로 RP(Rendezvous Point)를 사용한다.
+- Multicast Traffic을 보내는 Source와 연결된 Router는 RP에게 Multicast Traffic이 발생한 것을 알리고, Receiver와 연결된 Router는 RP 방향으로 PIM Join Message를 전송한다. 
+```
+Source -> R1 - R2(RP) - R3 - Client
+```
+
+### PIM SSM
+
+PIM-SSM(Source-Specific Multicast)은 Receiver가 Multicast Group과 Source를 함께 지정하는 방식이다.
+
+예를 들어 Receiver가 Source `192.168.10.10`이 `232.1.1.1` Group으로 전송하는 Traffic을 받으려는 경우 다음과 같이 표시한다.
+```
+S: 192.168.10.10
+G: 232.1.1.1  
+```
+SSM은 Receiver가 Source를 직접 지정하므로 RP가 필요하지 않다.
+
+### PIM Register와 Register-Stop
+
+First-Hop Router가 Source로부터 최초 Multicast Packet을 수신하면 해당 Packet을 PIM Register Message 안에 Encapsulation한다.
+
+First-Hop Router는 PIM Register Message를 RP에 Unicast로 전송하여 새로운 Multicast Source가 있다는 것을 알린다.
+
+RP는 PIM Register 안의 Multicast Packet을 Receiver 방향의 Shared Tree로 전달하고, Source 방향으로 PIM `(S,G)` Join Message를 전송한다.
+
+RP가 Source로부터 Multicast Packet을 수신하면 First-Hop Router에 Register-Stop Message를 전송한다.
+
+First-Hop Router는 Register-Stop을 수신하면 Multicast Packet을 PIM Register로 Encapsulation하는 것을 중단한다.
+
+### Shared Tree
+
+Shared Tree는 RP를 중심으로 생성되는 공통 Multicast 전달 경로이다.
+
+Multicast Routing Table에서는 `(*,G)`로 표시한다.
+
+```
+(*, 239.1.1.1)
+```
+- `*`는 특정 Source를 지정하지 않았다는 의미이며, `G`는 Multicast Group을 의미한다.
+
+### Source Tree
+
+Source Tree 또는 SPT(Shortest Path Tree)는 RP를 거치지 않고 Receiver 방향 Router가 Source까지 생성한 최단 경로이다.
+
+Multicast Routing Table에서는 `(S,G)`로 표시한다.
+```
+(192.168.10.10, 239.1.1.1)
+```
+
+### SPT Cutover
+
+Last-Hop Router가 Shared Tree를 통해 최초 Multicast Traffic을 수신하면 Source IP Address를 확인한다.
+
+Last-Hop Router는 Source 방향으로 PIM `(S,G)` Join Message를 전송하여 SPT를 생성한다.
+
+SPT를 통해 Multicast Traffic을 수신하기 시작하면 기존 RP 방향의 Shared Tree 경로를 Prune한다.
+
+이후 Multicast Traffic은 RP를 거치지 않고 Source에서 Receiver까지 최단 경로로 전달된다.
+```
+Shared Tree: Source → RP → Receiver
+SPT: Source → Receiver 최단 경로
+```
+
+### RPF
+
+RPF(Reverse Path Forwarding)는 Multicast Packet이 올바른 Interface로 들어왔는지 확인하는 기능이다.
+
+Router는 Unicast Routing Table을 조회하여 Source 또는 RP로 가는 경로를 확인한다.
+
+Packet이 해당 경로의 Interface로 들어오면 전달하고, 다른 Interface로 들어오면 폐기한다.
+
+---
