@@ -255,3 +255,353 @@ IPv6 Address: 2001:db8:10::1/64
 ```
 
 IPv4와 IPv6는 각각 별도의 Routing Table과 Protocol Stack을 사용한다.
+
+---
+
+## 동작 원리
+
+### IPv6 Host가 Network에 연결되는 과정
+
+1\. Host가 Interface에 Link-Local Address를 생성한다.
+
+2\. DAD를 실행하여 Link-Local Address가 중복되지 않았는지 확인한다.
+
+3\. Host는 Router 정보를 받기 위해 `FF02::2`로 RS Message를 전송한다.
+
+4\. Router는 Network Prefix, Default Gateway 및 DHCPv6 사용 여부가 포함된 RA Message를 전송한다.
+
+5\. Host는 RA Flag에 따라 SLAAC, Stateless DHCPv6 또는 Stateful DHCPv6를 사용한다.
+
+6\. 생성하거나 할당받은 Global Unicast Address에 대해 DAD를 실행한다.
+
+7\. 같은 Link의 장비와 통신할 때 NS와 NA Message를 사용하여 MAC Address를 확인한다.
+
+8\. 다른 Network로 Packet을 전송할 때 RA를 통해 학습한 Router의 Link-Local Address를 Default Gateway로 사용한다.
+
+---
+
+## 예시 및 구성
+
+### 사내 IPv6 Network 연결
+
+`MASON` 회사는 R1과 R2 사이에 IPv6 Network를 구성하고 서로 다른 두 LAN Network를 연결하려고 한다.
+
+![](images/34-ipv6-eg.png)
+
+### R1 IPv6 구성
+
+IPv6 Packet Forwarding을 활성화한다.
+```
+R1(config)# ipv6 unicast-routing
+```
+
+Interface에 IPv6 Address를 설정한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# ipv6 address 2001:db8:10::1/64
+R1(config-if)# no shutdown
+
+R1(config)# interface gi0/1
+R1(config-if)# ipv6 address 2001:db8:12::1/64
+R1(config-if)# no shutdown
+```
+
+R2의 LAN Network로 향하는 Static Route를 설정한다
+```
+R1(config)# ipv6 route 2001:db8:20::/64 2001:db8:12::2
+```
+
+### R2 IPv6 구성
+
+```
+R2(config)# ipv6 unicast-routing
+
+R2(config)# interface gi0/0
+R2(config-if)# ipv6 address 2001:db8:20::1/64
+R2(config-if)# no shutdown
+
+R2(config)# interface gi0/1
+R2(config-if)# ipv6 address 2001:db8:12::2/64
+R2(config-if)# no shutdown
+```
+
+R1의 LAN Network로 향하는 Static Route를 설정한다.
+```
+R2(config)# ipv6 route 2001:db8:10::/64 2001:db8:12::1
+```
+
+---
+
+## 명령어
+
+### IPv6 Default Route
+
+모든 IPv6 Destination을 지정한 Next-Hop으로 전달하는 Default Route를 설정한다.
+```
+R1(config)# ipv6 route ::/0 2001:db8:12::2
+```
+
+### Link-Local Address 수동 설정
+
+IPv6 Link-Local Address를 수동으로 설정할 수 있다.
+```
+R1(config)# interface gi0/1
+R1(config-if)# ipv6 address fe80::1 link-local
+```
+
+### SLAAC Client 설정
+
+Cisco 장비가 RA Message를 이용하여 IPv6 Address를 자동으로 생성하도록 설정한다.
+```
+R2(config)# interface gi0/0
+R2(config-if)# ipv6 address autoconfig
+```
+
+### Stateless DHCPv6 설정
+
+DHCPv6 Pool에 DNS Server와 Domain Name을 설정한다.
+```
+R1(config)# ipv6 dhcp pool STATELESS
+R1(config-dhcpv6)# dns-server 2001:4860:4860::8888
+R1(config-dhcpv6)# domain-name corp.mason
+R1(config-dhcpv6)# exit
+```
+
+Receiver 방향 Interface에서 O Flag를 설정하고 DHCPv6 Pool을 적용한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# ipv6 address 2001:db8:10::1/64
+R1(config-if)# ipv6 nd other-config-flag
+R1(config-if)# ipv6 dhcp server STATELESS
+```
+Host는 IPv6 Address를 SLAAC로 생성하고 DNS Server와 Domain Name은 DHCPv6에서 받는다.
+
+### Stateful DHCPv6 설정
+
+Host에게 할당할 IPv6 Prefix와 DNS 정보를 설정한다.
+```
+R1(config)# ipv6 dhcp pool STATEFUL
+R1(config-dhcpv6)# address prefix 2001:db8:10::/64
+R1(config-dhcpv6)# dns-server 2001:4860:4860::8888
+R1(config-dhcpv6)# domain-name corp.mason
+R1(config-dhcpv6)# exit
+```
+
+Receiver 방향 Interface에서 SLAAC를 통한 Address 생성을 중지하고 M Flag와 O Flag를 설정한다.
+```
+R1(config)# interface gi0/0
+R1(config-if)# ipv6 address 2001:db8:10::1/64
+R1(config-if)# ipv6 nd prefix 2001:db8:10::/64 no-autoconfig
+R1(config-if)# ipv6 nd managed-config-flag
+R1(config-if)# ipv6 nd other-config-flag
+R1(config-if)# ipv6 dhcp server STATEFUL
+```
+- `no-autoconfig`: Host가 해당 Prefix를 이용하여 SLAAC Address를 생성하지 않도록 한다.
+- `managed-config-flag`: IPv6 Address를 DHCPv6에서 받도록 M Flag를 설정한다.
+- `other-config-flag`: DNS 등의 추가 정보를 DHCPv6에서 받도록 O Flag를 설정한다.
+- Default Gateway는 DHCPv6가 아니라 RA를 통해 학습한다.
+
+### OSPFv3 설정
+
+다음 구성은 앞에서 설정한 Static Route 대신 OSPFv3를 사용하는 예시이다.
+
+R1에서 OSPFv3 Process와 Router ID를 설정한다.
+```
+R1(config)# ipv6 router ospf 10
+R1(config-rtr)# router-id 1.1.1.1
+R1(config-rtr)# exit
+
+R1(config)# interface gi0/0
+R1(config-if)# ipv6 ospf 10 area 0
+
+R1(config)# interface gi0/1
+R1(config-if)# ipv6 ospf 10 area 0
+```
+
+R2에서 OSPFv3를 설정한다.
+```
+R2(config)# ipv6 router ospf 10
+R2(config-rtr)# router-id 2.2.2.2
+R2(config-rtr)# exit
+
+R2(config)# interface gi0/0
+R2(config-if)# ipv6 ospf 10 area 0
+
+R2(config)# interface gi0/1
+R2(config-if)# ipv6 ospf 10 area 0
+```
+
+OSPFv3는 별도의 `network` 명령어 없이 Interface에서 Process와 Area를 지정한다.
+
+### IPv6 BGP 설정
+
+R1과 R2가 서로 다른 AS에서 IPv6 Route를 교환하도록 MP-BGP를 설정한다.
+
+R1 설정:
+```
+R1(config)# router bgp 65001
+R1(config-router)# bgp router-id 1.1.1.1
+R1(config-router)# neighbor 2001:db8:12::2 remote-as 65002
+R1(config-router)# address-family ipv6 unicast
+R1(config-router-af)# neighbor 2001:db8:12::2 activate
+R1(config-router-af)# network 2001:db8:10::/64
+```
+
+R2 설정:
+```
+R2(config)# router bgp 65002
+R2(config-router)# bgp router-id 2.2.2.2
+R2(config-router)# neighbor 2001:db8:12::1 remote-as 65001
+R2(config-router)# address-family ipv6 unicast
+R2(config-router-af)# neighbor 2001:db8:12::1 activate
+R2(config-router-af)# network 2001:db8:20::/64
+```
+
+---
+
+## 확인 명령어
+
+Interface의 IPv6 Address와 상태를 확인한다.
+```
+R1# show ipv6 interface brief
+```
+
+Interface의 Link-Local Address, Global Unicast Address 및 RA 설정을 확인한다.
+```
+R1# show ipv6 interface gi0/0
+```
+
+IPv6 Routing Table을 확인한다.
+```
+R1# show ipv6 route
+```
+
+NDP를 통해 학습한 IPv6 Address와 MAC Address를 확인한다.
+```
+R1# show ipv6 neighbors
+```
+
+IPv6 Destination과 통신되는지 확인한다.
+```
+R1# ping 2001:db8:20::10
+R1# traceroute ipv6 2001:db8:20::10
+```
+
+DHCPv6 Pool과 Client Binding을 확인한다.
+```
+R1# show ipv6 dhcp pool
+R1# show ipv6 dhcp binding
+R1# show ipv6 dhcp interface gi0/0
+```
+
+OSPFv3 Neighbor와 학습한 Route를 확인한다.
+```
+R1# show ipv6 ospf neighbor
+R1# show ipv6 ospf interface brief
+R1# show ipv6 route ospf
+```
+
+IPv6 BGP Neighbor와 학습한 Route를 확인한다.
+```
+R1# show bgp ipv6 unicast summary
+R1# show bgp ipv6 unicast
+R1# show ipv6 route bgp
+```
+
+---
+
+## Troubleshooting
+
+### IPv6 통신이 정상적으로 동작하지 않는 경우
+
+1\. Interface에 올바른 IPv6 Address와 Prefix Length가 설정되어 있는지 확인한다.
+```
+R1# show ipv6 interface brief
+R1# show running-config interface gi0/0
+```
+
+2\. Router에서 IPv6 Packet Forwarding이 활성화되어 있는지 확인한다.
+```
+R1# show running-config | include ipv6 unicast-routing
+```
+- `ipv6 unicast-routing`이 없으면 Router가 다른 Interface로 IPv6 Packet을 Forwarding하지 않는다.
+
+3\. Destination Network로 향하는 IPv6 Route가 존재하는지 확인한다.
+```
+R1# show ipv6 route
+R1# show ipv6 route 2001:db8:20::/64
+```
+
+4\. NDP를 통해 Next-Hop의 IPv6 Address와 MAC Address를 정상적으로 학습했는지 확인한다.
+```
+R1# show ipv6 neighbors
+```
+- Neighbor가 보이지 않으면 같은 Prefix를 사용하는지, Interface가 Up 상태인지 확인한다.
+
+5\. Link-Local Address와 Global Unicast Address를 순서대로 Ping한다.
+```
+R1# ping fe80::2 source gi0/1
+R1# ping 2001:db8:12::2
+R1# ping 2001:db8:20::10
+```
+
+6\. ACL이나 Firewall에서 필요한 ICMPv6 Message를 차단하고 있지 않은지 확인한다.
+- NDP, SLAAC 및 PMTUD가 ICMPv6를 사용하기 때문에 ICMPv6를 모두 차단하면 IPv6 통신에 문제가 발생할 수 있다.
+
+7\. SLAAC 또는 DHCPv6가 동작하지 않으면 RA의 M Flag와 O Flag를 확인한다.
+```
+R1# show ipv6 interface gi0/0
+R1# show ipv6 dhcp pool
+R1# show ipv6 dhcp binding
+```
+- SLAAC: M Flag와 O Flag가 필요하지 않다.
+- Stateless DHCPv6: O Flag를 사용한다.
+- Stateful DHCPv6: M Flag를 사용하며 DNS 등의 추가 정보를 위해 O Flag도 사용할 수 있다.
+
+8\. OSPFv3 Neighbor가 형성되지 않으면 Router ID, Area, Interface 및 Link-Local Address를 확인한다.
+```
+R1# show ipv6 ospf neighbor
+R1# show ipv6 ospf interface brief
+R1# show ipv6 interface gi0/1
+```
+
+9\. IPv6 BGP Neighbor가 형성되지 않으면 IPv6 Address Family에서 Neighbor가 활성화되어 있는지 확인한다.
+```
+R1# show bgp ipv6 unicast summary
+R1# show running-config | section router bgp
+R1# ping 2001:db8:12::2
+```
+
+---
+
+## 주요 질문
+
+IPv6를 사용하는 이유는 무엇인가?
+- IPv4 Address 부족 문제를 해결하고 더 큰 Address 공간을 확보하기 위해 사용한다.
+
+IPv6 Address는 몇 bit인가?
+- IPv6 Address는 `128bit`이며 16진수로 표시한다.
+
+IPv6에서 일반적인 LAN Prefix Length는 무엇인가?
+- 일반적으로 `/64`를 사용한다.
+
+IPv6에는 Broadcast가 있는가?
+- 없다, 여러 장비에 Packet을 전달할 때 Multicast를 사용한다.
+
+Link-Local Address는 어디에 사용하는가?
+- 같은 Link의 Neighbor 확인, Default Gateway 및 OSPFv3 Neighbor 형성 등에 사용한다.
+
+NDP는 어떤 역할을 하는가?
+- IPv6 Neighbor의 MAC Address, Router, Network Prefix 및 연결 상태를 확인하며 IPv4의 ARP를 대신한다.
+
+SLAAC와 DHCPv6의 차이는 무엇인가?
+- SLAAC는 Host가 RA의 Prefix를 이용하여 Address를 직접 생성하고, DHCPv6는 Server가 Address나 DNS 등의 정보를 제공한다.
+
+Stateless DHCPv6와 Stateful DHCPv6의 차이는 무엇인가?
+- Stateless DHCPv6는 Address를 SLAAC로 생성하고 추가 정보만 DHCPv6에서 받으며, Stateful DHCPv6는 Address와 추가 정보를 DHCPv6 Server에서 받는다.
+
+DHCPv6 Server가 Default Gateway를 알려주는가?
+- 아니다, IPv6 Host는 Router의 RA Message를 통해 Default Gateway를 학습한다.
+
+IPv6 Router가 Packet을 Fragmentation하는가?
+- 아니다, Packet이 MTU보다 크면 ICMPv6 Packet Too Big Message를 Source에 전송하고 Source가 Packet 크기를 조정한다.
