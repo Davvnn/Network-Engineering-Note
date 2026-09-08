@@ -143,9 +143,7 @@ Last-Hop Router는 처음에 RP를 기준으로 생성된 Shared Tree를 통해 
 
 Last-Hop Router는 Packet의 Source IP Address를 확인한 후 Source 방향으로 PIM `(S,G)` Join Message를 전송하여 더 짧은 SPT를 생성한다.
 
-SPT를 통해 Traffic을 수신하기 시작하면 기존 RP 방향의 경로를 Prune하여 더 이상 사용하지 않는다.
-
-처음에는 RP 방향의 Shared Tree를 통해 Multicast Traffic을 수신하지만, 이후에는 Source에서 Receiver까지 더 효율적인 경로인 SPT를 사용한다.
+SPT를 통해 Traffic을 수신하기 시작하면 기존 RP 방향의 경로를 Prune하고, 이후에는 Source에서 Receiver까지 더 효율적인 경로인 SPT를 사용한다.
 ```
 Shared Tree: Source → RP → Receiver
 SPT: Source → Receiver 최단 경로
@@ -160,3 +158,38 @@ Router는 Unicast Routing Table을 조회하여 Source 또는 RP로 가는 경�
 Packet이 해당 경로의 Interface로 들어오면 전달하고, 다른 Interface로 들어오면 폐기한다.
 
 ---
+
+## 동작 원리
+
+### IGMP와 PIM 동작 과정
+
+1\. Multicast Source가 Group Address `239.1.1.1`을 Destination으로 Traffic을 전송한다.
+
+2\. Receiver의 Application이 `239.1.1.1` Group에 가입한다.
+
+3\. Receiver는 Last-Hop Router에 IGMP Membership Report를 전송한다.
+
+4\. Last-Hop Router는 Receiver가 존재하는 Interface를 IGMP Group Table에 등록한다.
+
+5\. Last-Hop Router는 RP 방향으로 PIM `(*,G)` Join Message를 전송한다.
+
+6\. Router들은 RP를 중심으로 `(*,239.1.1.1)` Shared Tree를 생성한다.
+
+7\. First-Hop Router는 Source가 전송한 최초 Multicast Packet을 PIM Register Message 안에 Encapsulation한다.
+
+8\. First-Hop Router는 PIM Register Message를 RP에 Unicast로 전송한다.
+
+9\. RP는 PIM Register 안의 Multicast Packet을 Shared Tree를 통해 Receiver 방향으로 전달한다.
+
+10\. RP는 Source 방향으로 PIM `(S,G)` Join Message를 전송한다.
+
+11\. RP가 Source로부터 Multicast Traffic을 직접 수신하면 First-Hop Router에 Register-Stop Message를 전송한다.
+
+12\. Last-Hop Router는 Source 방향으로 PIM `(S,G)` Join Message를 전송하여 SPT를 생성한다.
+
+13\. Last-Hop Router가 SPT를 통해 Traffic을 수신하기 시작하면 기존 RP 방향의 Shared Tree를 Prune한다.
+
+14\. 이후 Multicast Traffic은 Source에서 Receiver까지 최단 경로로 전달된다.
+
+---
+
