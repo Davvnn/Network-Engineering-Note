@@ -16,7 +16,7 @@ IPv4 Multicast는 `224.0.0.0/4` 범위의 IP Address를 사용한다.
 ```
 
 주요 Address 범위는 다음과 같다.
-- `224.0.0.0/24`: - `224.0.0.0/24`: 같은 Local Network 내의 Protocol Message에 사용하며, 해당 Multicast Traffic은 다른 Network로 전달되지 않는다.
+- `224.0.0.0/24`: 같은 Local Network 내의 Protocol Message에 사용하며, 해당 Multicast Traffic은 다른 Network로 전달되지 않는다.
 - `232.0.0.0/8`: SSM(Source-Specific Multicast)에 사용하며, Receiver가 Traffic을 받을 Source를 직접 지정한다.
 - `239.0.0.0/8`: 사내 Network처럼 제한된 범위에서 사용하는 Multicast Address이다. 예를 들어 사내 방송을 `239.1.1.1`로 전송하고, 해당 Traffic이 회사 외부로 전달되지 않도록 범위를 제한할 때 사용한다.
 
@@ -26,9 +26,7 @@ IGMP(Internet Group Management Protocol)는 Receiver가 같은 Network에 있는
 
 Receiver는 IGMP Membership Report를 전송하여 특정 Multicast Group의 Traffic을 수신하겠다고 Router에 알린다.
 
-Router는 IGMP Query를 주기적으로 전송하여 Group에 가입한 Receiver가 여전히 존재하는지 확인한다.
-
-Multicast Router는 같은 Network에 있는 Receiver들에게 IGMP Query를 주기적으로 전송하여, 해당 Multicast Group의 Traffic을 받는 Receiver가 계속 존재하는지 확인한다.
+Multicast Router는 같은 Network에 있는 Receiver들에게 IGMP Query를 주기적으로 전송하여, Multicast Group에 가입한 Receiver가 계속 존재하는지 확인한다.
 
 IGMP는 IP Protocol Number `2`를 사용한다.
 
@@ -44,9 +42,7 @@ IGMPv1은 Multicast Group 가입 기능을 제공하지만 Group에서 즉시 �
 
 IGMPv2는 Leave Group Message를 지원한다.
 
-Receiver가 Group에서 탈퇴하면 Router가 Group-Specific Query를 전송하여 다른 Receiver가 남아 있는지 확인한다.
-
-Receiver가 Multicast Group에서 탈퇴하면 Multicast Router는 해당 Group Address로 Group-Specific Query를 전송한다. 
+Receiver가 Multicast Group에서 탈퇴하면 Multicast Router는 해당 Group Address로 Group-Specific Query를 전송하여 다른 Receiver가 남아 있는지 확인한다.
 
 #### IGMPv3
 
@@ -73,7 +69,7 @@ IGMP Snooping을 사용하면 Multicast Traffic을 다음 Port에만 전달한�
 
 PIM(Protocol Independent Multicast)은 Router 사이에서 Multicast 전달 경로를 생성하는 Multicast Routing Protocol이다.
 
-PIM은 Static Route, OSPF 및 EIGRP 등으로 생성된 Routing Table을 확인하여 Multicast Traffic이 Source 방향에서 정상적으로 들어왔는지 확인한다.
+PIM은 Unicast Routing Table을 확인하여 Multicast Traffic이 Source 또는 RP 방향의 올바른 Interface로 들어왔는지 확인한다.
 
 PIM은 특정 Routing Protocol만 사용하는 것이 아니라 Static Route, OSPF 및 EIGRP 등으로 생성된 Routing Table을 모두 사용할 수 있기 때문에 Protocol Independent라고 한다.
 - PIM은 IP Protocol Number `103`을 사용한다.
@@ -93,7 +89,7 @@ PIM-SM(Sparse Mode)은 Receiver가 Multicast Group에 가입하면, Receiver와 
 PIM-SM에서는 Source의 Multicast Traffic과 Receiver의 가입 요청이 만나는 지점으로 RP(Rendezvous Point)를 사용한다.
 - Multicast Traffic을 보내는 Source와 연결된 Router는 RP에게 Multicast Traffic이 발생한 것을 알리고, Receiver와 연결된 Router는 RP 방향으로 PIM Join Message를 전송한다. 
 ```
-Source -> R1 - R2(RP) - R3 - Client
+Source → R1 → R2(RP) → R3 → Receiver
 ```
 
 ### PIM SSM
@@ -102,8 +98,10 @@ PIM-SSM(Source-Specific Multicast)은 Receiver가 Multicast Group과 Source를 �
 
 예를 들어 Receiver가 Source `192.168.10.10`이 `232.1.1.1` Group으로 전송하는 Traffic을 받으려는 경우 다음과 같이 표시한다.
 ```
-S: 192.168.10.10
-G: 232.1.1.1  
+(S,G): (192.168.10.10, 232.1.1.1)
+
+S: Source IP Address
+G: Multicast Group Address
 ```
 SSM은 Receiver가 Source를 직접 지정하므로 RP가 필요하지 않다.
 
@@ -145,7 +143,7 @@ Last-Hop Router가 Shared Tree를 통해 최초 Multicast Traffic을 수신하�
 
 Last-Hop Router는 Source 방향으로 PIM `(S,G)` Join Message를 전송하여 SPT를 생성한다.
 
-SPT를 통해 Multicast Traffic을 수신하기 시작하면 기존 RP 방향의 Shared Tree 경로를 Prune한다.
+SPT를 통해 Multicast Traffic을 수신하기 시작하면 해당 Source Traffic에 대한 RP 방향의 기존 경로를 Prune한다.
 
 이후 Multicast Traffic은 RP를 거치지 않고 Source에서 Receiver까지 최단 경로로 전달된다.
 ```
